@@ -1,0 +1,33 @@
+html, body {
+    padding: 0;
+    margin: 0;
+    height: 100%;
+}
+
+button {
+    background-color: #0057A3;
+    border: none;
+    color: white;
+    display: block;
+    margin: auto;
+    padding: 15px 32px 15px 32px;
+    text-align: center;
+    font-size: 30px;
+}
+
+img {
+    height: 15vh;
+    margin: 0.5vh;
+    padding: 0;
+}
+
+
+td, tr {
+    margin: 0;
+    padding: 0;
+}
+
+table {
+    margin: auto;
+    padding: 0;
+}
