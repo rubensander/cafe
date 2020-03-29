@@ -7,9 +7,6 @@ var nationStack = [];
 var nationStackSize;
 var curPlayer;
 var specialMode = "none";
-var out = document.getElementsByName("span_out")[0];
-
-init();
 
 function init() {
     for(let i = 0; i < 5; i++) {
@@ -52,14 +49,11 @@ function set(card, seatNr) {
         return false;
 
     seat.card = card;
-    document.getElementById("seat" + seatNr).src = "./img/" + card.nation + "_" + card.sex + ".svg";
 }
 
 function resetTable(tableNr) {
     if(nationStackSize > 0) {
         tables[tableNr].nation = nationStack[--nationStackSize];
-        //console.log(tables[tableNr].nation);
-        document.getElementById("table" + tableNr).src = "./img/" + tables[tableNr].nation + "_t.svg";
     } else {
         endGame();
     }
@@ -102,3 +96,8 @@ function shuffle(a) {
     }
     return a;
 }
+
+init();
+
+exports.state = { tables, seats };
+exports.resetTable = resetTable;
