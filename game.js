@@ -66,14 +66,16 @@ function drawCard() {
     return;
 }
 
-function addPlayer() {
-    var newPlayer = { points:0, cards:[], name:getElementsById("inpPlayerName").value };
+function addPlayer(ip) {
+    var newPlayer = { points:0, cards:[], name:getElementsById("inpPlayerName").value, ip };
+    for(let i = 0; i < 5; i++) {
+      newPlayer.cards[i] = drawCard();
+    }
     if(curPlayer == undefined) {
         newPlayer.next = newPlayer;
     } else {
         newPlayer.next = curPlayer.next;
         curPlayer.next = newPlayer;
-
     }
     curPlayer = newPlayer;
 }

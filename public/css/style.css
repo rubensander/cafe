@@ -2,12 +2,13 @@ html, body {
     padding: 0;
     margin: 0;
     height: 100%;
+    font-family: Arial, Helvetica, sans-serif;
+    text-align: center;
 }
 
-button {
+.button {
     background-color: #0057A3;
     border: none;
-    border-radius: 5px;
     color: white;
     margin: 10px;
     height: 60px;
@@ -18,7 +19,7 @@ button {
     font-size: 30px;
 }
 
-button:hover {
+button:hover, .button:hover {
     cursor: pointer;
     background-color: #00B3F2;
 }
@@ -57,9 +58,39 @@ table {
     margin: auto;
 }
 
-input {
-    border-color: #cccccc;
-    border-radius: 5px;
-    padding: 5px;
-    font-size: 15px;
+
+
+.welcome {
+  font-size: 10vmin;
+  color: #0057A3;
+  margin-top: 20vmin;
+  margin-bottom: 10vmin;
+}
+
+.joinGame {
+  display: inline-block;
+
+}
+
+.stringInput {
+  border-color: #CCCCCC;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 5vmin;
+  padding: 2vmin;
+}
+
+.btn {
+  background-color: #0057A3;
+  border-color: #0057A3;
+  color: white;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 5vmin;
+  padding: 2vmin 5vmin 2vmin 5vmin;
+  margin-left: 5vmin;
+  text-align: center;
+}
+
+.btn:hover {
+  cursor: pointer;
+  background-color: #00B3F2;
 }
