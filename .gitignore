@@ -8,7 +8,8 @@ node_modules
 package-lock.json
 *.log
 *.gz
-express-gen-example
+java-project/cafe
+java-project/cafe.jar
 
 
 # Coveralls

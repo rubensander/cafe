@@ -1,0 +1,6 @@
+package cafe;
+
+public enum Nation
+{
+    AFRICA, CHINA, CUBA, ENGLAND, FRANCE, GERMANY, INDIA, ITALY, RUSSIA, SPAIN, TURKEY, USA;
+}
