@@ -7,7 +7,7 @@ kannst du auf deinem Rechner einen neuen Ordner "cafe" erstellen und dort das Pr
 Falls du deinen Rechner z.B. schon per SSH in deinem Account registriert hast, führe in der Git Bash die Befehle:
 
 $ git init
-$ git remote add -f cafe-remote git@github.com:ainaianemahy/cafe.git
+$ git remote add -f cafe-remote git@github.com:AinaIanemahy/cafe.git
 $ git pull cafe-remote
 
 Dann musst du die Tools Node.js und npm herunterladen, um Node.js auszuführen und einen Server simulieren zu können:
