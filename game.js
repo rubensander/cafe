@@ -66,8 +66,8 @@ function drawCard() {
     return;
 }
 
-function addPlayer(ip) {
-    var newPlayer = { points:0, cards:[], name:getElementsById("inpPlayerName").value, ip };
+function addPlayer(name, ip) {
+    var newPlayer = { points:0, cards:[], name, ip };
     for(let i = 0; i < 5; i++) {
       newPlayer.cards[i] = drawCard();
     }
@@ -78,6 +78,17 @@ function addPlayer(ip) {
         curPlayer.next = newPlayer;
     }
     curPlayer = newPlayer;
+}
+
+function playerList() {
+  // create player list
+  var playerList = "";
+  var player = curPlayer.next;
+  while(player != curPlayer) {
+    playerList += player.name + ", ";
+    player = player.next;
+  }
+  return playerList + curPlayer.name;
 }
 
 function endGame() {
@@ -101,5 +112,7 @@ function shuffle(a) {
 
 init();
 
+exports.playerList = playerList;
 exports.state = { tables, seats };
 exports.resetTable = resetTable;
+exports.addPlayer = addPlayer;

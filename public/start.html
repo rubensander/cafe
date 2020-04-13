@@ -5,18 +5,16 @@
 
   <title>Café International</title>
 
-  <link rel="stylesheet" type="text/css" href="./css/style.css">
+  <link rel="stylesheet" type="text/css" href="./css/master.css">
+  <link rel="stylesheet" type="text/css" href="./css/start.css">
 </head>
 <body>
   <div class="welcome">
     Willkommen bei<br>Café International
   </div>
   <form class="joinGame" action="/join" method="post">
-    <input class="stringInput" type="text" name="inpPlayerName" placeholder="Dein Name" id="inpPlayerName">
-    <input class="btn" id="submitPlayername" type="button" name="submitPlayername" value="OK">
+    <input class="stringInput" type="text" name="playerName" placeholder="Dein Name" id="inpPlayerName" />
+    <input class="button" id="submitPlayername" type="submit" value="OK" />
   </form>
-  <div class="players">
-    <button class="btn" type="button" name="startGame">Los geht's!</button>
-  </div>
 </body>
 </html>
