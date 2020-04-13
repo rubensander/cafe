@@ -1,3 +1,5 @@
+// :)
+
 const nations = ["DE", "FR", "IT", "TR","DE", "FR", "IT", "TR","DE", "FR", "IT", "TR"]; //["af", "cn", "cu", "de", "en", "fr", "in", "it", "nl", "be"];
 var tables = [];
 var seats = [];
