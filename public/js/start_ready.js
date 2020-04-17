@@ -1,4 +1,4 @@
-const ws = new WebSocket("ws://" + location.host.slice(0,-1) + "4");
+const ws = new WebSocket("ws://" + location.host.slice(0,-1) + "5");
 
 ws.onopen = function() {
   ws.send(JSON.stringify({ state:"PLAYERS" }));

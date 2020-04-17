@@ -1,8 +1,10 @@
 package cafe;
 
+import java.lang.Runnable;
+import java.net.Socket;
 import java.util.ArrayList;
 
-public class Player {
+public class Player implements Runnable {
     private int points;
     private ArrayList<Card> cards;
     private Player next;
@@ -10,16 +12,23 @@ public class Player {
     private int selectedCard;
     private int status;
     private Game game;
+    private Socket socket;
 
-    public Player(Game pGame, ArrayList<Card> startCards, String pName) {
+    public Player(Game pGame, ArrayList<Card> startCards, Socket pSocket) {
         game = pGame;
 
         cards = new ArrayList<Card>(startCards);
 
+        socket = pSocket;
+
         next = this;
-        name = pName;
+        name = "";
         selectedCard = -1;
         status = -1;
+    }
+
+    public void run() {
+      
     }
 
     public void setNext(Player pNext) {
