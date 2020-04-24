@@ -23,20 +23,25 @@ public class Game {
 
 
   public static void main(String args[]) {
+
+    Game game = new Game();
     try {
-      Game game = new Game();
       game.startWebSocket();
 
       while(game.specialMode == SpecialMode.NOTSTARTED) {
-        new Thread(new Player(game, game.webSocket.accept()));
+    	try {
+    		new Thread(new Player(game, game.webSocket.accept()));
+    	} catch(Exception ex) {
+    		System.out.println("Socket could not connect to player.");
+    	}
       }
 
       game.webSocket.close();
-
+      
       //game.start();
     } catch(IOException ex) {
-      System.out.println("Websocket server failed starting.");
-    }
+        System.out.println("Websocket server failed starting: " + ex.getMessage());
+      }
   }
 
   public Game() {
@@ -66,7 +71,7 @@ public class Game {
     Collections.shuffle(tableStack);
 
     curPlayer = null;
-    specialMode = SpecialMode.NONE;
+    specialMode = SpecialMode.NOTSTARTED;
     //createSzenario();
   }
 

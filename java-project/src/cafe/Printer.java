@@ -1,7 +1,5 @@
 package cafe;
 
-import java.util.ArrayList;
-
 public abstract class Printer {
 
     public static void printGraphic(Seat[] seats, Table[] tables) {
@@ -24,7 +22,6 @@ public abstract class Printer {
     private static void print135(int s1, int s2, int t1, Seat[] seats, Table[] tables) {
         Seat seat1 = seats[s1];
         Seat seat2 = seats[s2];
-        Table table1;
 
         StringBuffer line;
         line = new StringBuffer();

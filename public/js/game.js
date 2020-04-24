@@ -5,7 +5,12 @@ const ws = new WebSocket("ws://" + location.host.slice(0,-1) + "5");
 
 function joinGame() {
   var name = document.getElementById("inpPlayerName").value;
-  if(name != "") {
+  console.log(ws);
+  if(ws.readyState == 0) {
+    console.log("Websocket connection has not yet been established.");
+  } else if(name == "") {
+    console.log("Name must not be empty");
+  } else {
     ws.send(JSON.stringify({ status:"JOIN", name }));
   }
 }
@@ -34,7 +39,7 @@ ws.onmessage = function(event) {
       document.getElementById("playerList").textContent = p;
     }
   }
-  //console.log(event.data);
+  console.log(event.data);
 };
 
 function startGame() {
