@@ -1,4 +1,15 @@
+.welcome {
+  font-size: 10vmin;
+  color: #0057A3;
+  padding-top: 20vmin;
+  margin-bottom: 10vmin;
+}
+
 .joinGame {
+  display: inline-block;
+}
+
+.startGame {
   display: inline-block;
 }
 
@@ -7,4 +18,18 @@
   font-family: Arial, Helvetica, sans-serif;
   font-size: 5vmin;
   padding: 2vmin;
+}
+
+#playerList {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 5vmin;
+  color: #0057A3;
+}
+
+.players {
+  display: inline-block;
+}
+
+#btnStartGame {
+  display: none;
 }

@@ -5,14 +5,29 @@
 
   <title>Café International</title>
 
-  <link rel="stylesheet" type="text/css" href="./css/style.css">
-
+  <link rel="stylesheet" type="text/css" href="./css/master.css">
+  <link rel="stylesheet" type="text/css" href="./css/start.css">
+  
   <script src="./js/game.js" charset="utf-8"></script>
 </head>
 <body>
+  <div class="welcome">
+    Willkommen bei<br>Café International
+  </div>
+  <div class="joinGame">
+    <input class="stringInput" type="text" name="playerName" placeholder="Dein Name" id="inpPlayerName" />
+    <button class="button" id="submitPlayername" onclick="joinGame()">OK</button>
+  </div>
+  <div class="startGame">
+    <p id="playerList"></p>
+    <button class="button" id="btnStartGame" onclick="startGame()" >Los geht's!</button>
+  </div>
+
   <div class="playerinfo" id="playerinfo">
 
   </div>
+
+
   <table>
     <tr>
       <td></td>
@@ -52,7 +67,7 @@
   </table>
 
   <div class="hand">
-    
+
   </div>
 
   <div class="button_div">

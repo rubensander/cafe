@@ -1,0 +1,26 @@
+
+
+img {
+  border-style: solid;
+  border-color: #FFFFFF;
+  border-radius: 5px;
+  height: 15vh;
+  margin: 0;
+  padding: 0.3vh;
+}
+
+img:hover {
+  border-color: #CCCCCC;
+  border-style: dashed;
+  cursor: pointer;
+}
+
+table {
+  margin: auto;
+  padding: 0;
+}
+
+td, tr {
+  margin: 0;
+  padding: 0;
+}
