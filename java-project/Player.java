@@ -1,8 +1,16 @@
 package cafe;
 
+import java.io.BufferedWriter;
+import java.io.InputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.lang.Runnable;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Scanner;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class Player implements Runnable {
     private int points;
@@ -14,10 +22,8 @@ public class Player implements Runnable {
     private Game game;
     private Socket socket;
 
-    public Player(Game pGame, ArrayList<Card> startCards, Socket pSocket) {
+    public Player(Game pGame, Socket pSocket) {
         game = pGame;
-
-        cards = new ArrayList<Card>(startCards);
 
         socket = pSocket;
 
@@ -28,7 +34,56 @@ public class Player implements Runnable {
     }
 
     public void run() {
-      
+      if(socket != null) {
+        try {
+          InputStream in = socket.getInputStream();
+          //OutputStream out = socket.getOutputStream();
+          Scanner s = new Scanner(in, "UTF-8");
+
+          JSONObject msgObj = new JSONObject(s.nextLine());
+
+          if(msgObj.get("status").equals("JOIN")) {
+            if(msgObj.get("name") != "")
+              cards = game.join(this);
+            else
+              throw new ProtocolException("Empty name.");
+          }
+          msgObj = new JSONObject(s.nextLine());
+          if(msgObj.get("status").equals("START")) {
+            if(game.specialMode == SpecialMode.NOTSTARTED)
+              game.start();
+            else
+              throw new ProtocolException("Game has already been started.");
+              msgObj = new JSONObject(s.nextLine());
+          }
+
+          // ...
+
+        } catch(JSONException e) {
+          System.out.println(name + ": Error with received JSON object. " + e.getMessage());
+        } catch(ProtocolException e) {
+          System.out.println(name + ": Error with protocol. " + e.getMessage());
+        } catch(IOException e) {
+          System.out.println(name + ": IO receiving Error. " + e.getMessage());
+        }
+      }
+    }
+
+    public class ProtocolException extends Exception {
+      public ProtocolException(String message) {
+        super(message);
+      }
+    }
+
+    public void send(String message) {
+      try {
+        BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF8"));
+        out.write(message);
+        out.flush();
+      } catch(IOException e) {
+        System.out.println(name + ": IO sending Error. " + e.getMessage());
+      }
+
     }
 
     public void setNext(Player pNext) {

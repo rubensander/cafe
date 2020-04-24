@@ -1,10 +1,14 @@
 package cafe;
 
-import java.io.*;
-import java.util.*;
-import java.util.ArrayList;
-
+import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Stack;
+//import java.util.*;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class Game {
   Table[] tables = new Table[5];
@@ -22,7 +26,13 @@ public class Game {
     try {
       Game game = new Game();
       game.startWebSocket();
-      game.addPlayers();
+
+      while(game.specialMode == SpecialMode.NOTSTARTED) {
+        new Thread(new Player(game, game.webSocket.accept()));
+      }
+
+      game.webSocket.close();
+
       //game.start();
     } catch(IOException ex) {
       System.out.println("Websocket server failed starting.");
@@ -65,53 +75,58 @@ public class Game {
     System.out.println("Websocket server started on port 2855.");
   }
 
-  private void addPlayers() {
-    int numPlayers = 0;
-    while(true) {
-      addPlayer(webSocket.accept());
-      numPlayers++;
-      if(numPlayers == 2) {
+  public void broadcast(String status, JSONObject data) throws JSONException {
+    data.put("status", status);
+    String message = data.toString();
 
-      }
-    }
-
-    Scanner scanner = new Scanner(System.in);
-
-    System.out.println("Please insert the names of the participating players (2 to 6 allowed):");
-    System.out.print("NAME> ");
-    addPlayer(scanner.next());
-    System.out.print("NAME> ");
-    addPlayer(scanner.next());
-
-    int i = 2;
-    String in;
-    while(i++ < 6) {
-      System.out.print("NAME|start> ");
-      in = scanner.next();
-      if(in.equals("start")) break;
-      addPlayer(in);
-    }
+    Player p = curPlayer;
+    do {
+      p.send(message);
+      p = p.getNext();
+    } while(p != curPlayer);
   }
 
-  public void addPlayer(Socket pSocket) {
-    ArrayList<Card> startCards = new ArrayList<Card>();
+  public ArrayList<Card> join(Player pSender) {
+    // broadcast message of new player having joined
+    JSONObject msgObj = new JSONObject();
 
+    try {
+      if(curPlayer == null) {
+        msgObj.put("enableStart", new Boolean(false));
+      } else {
+        pSender.setNext(curPlayer.getNext());
+        curPlayer.setNext(pSender);
+        msgObj.put("enableStart", new Boolean(true));
+      }
+      curPlayer = pSender;
+
+      // get player list
+      JSONArray players = new JSONArray();
+      Player p = curPlayer;
+      do {
+        players.put(p.getName());
+        p = p.getNext();
+      } while(p != curPlayer);
+      msgObj.put("players", players);
+
+      broadcast("NEW_PLAYER", msgObj);
+    } catch(JSONException e) {
+      System.out.println(e.getMessage());
+    } finally {
+      curPlayer = pSender;
+    }
+
+    // draw start cards
+    ArrayList<Card> startCards = new ArrayList<Card>();
     for(int i = 0; i < 7; i++) {
       startCards.add(stack.peek());
       stack.pop();
     }
-
-    if(curPlayer == null) {
-      curPlayer = new Player(this, startCards, pName, pSocket);
-    } else {
-      Player newPlayer = new Player(this, startCards, pName, pSocket);
-      newPlayer.setNext(curPlayer.getNext());
-      curPlayer.setNext(newPlayer);
-      curPlayer = newPlayer;
-    }
+    return startCards;
   }
 
-  public void start() {
+
+  public void start() {/*
     for(int i = 0; i < 5; i++) {
       tables[i].setNation(tableStack.pop());
     }
@@ -190,8 +205,10 @@ public class Game {
       }
       //System.out.println("");
     }
-
-    webSocket.close();
+*/
+    try {
+      webSocket.close();
+    } catch(IOException e) {}
   }
 
   public void end() {

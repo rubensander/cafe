@@ -1,9 +1,17 @@
-var img = new Image();
-var id = -1;
-img.src = "./img/DE_t.svg";
+//var img = new Image();
+//img.src = "./img/DE_t.svg";
 
-function changeTables() {
-  ws.send("CHANGE");
+const ws = new WebSocket("ws://" + location.host.slice(0,-1) + "5");
+
+function joinGame() {
+  var name = document.getElementById("inpPlayerName").value;
+  if(name != "") {
+    ws.send(JSON.stringify({ status:"JOIN", name }));
+  }
+}
+
+function startGame() {
+  ws.send(JSON.stringify({ status:"START" }));
 }
 
 function addPlayer() {
@@ -13,7 +21,26 @@ function addPlayer() {
     }*/
 }
 
-const ws = new WebSocket('ws://192.168.2.114:8080');
+
+ws.onopen = function() {
+
+};
+
+ws.onmessage = function(event) {
+  if(event.data.status == "NEW_PLAYER") {
+    if(event.data.enableStart)
+      document.getElementById("btnStartGame");
+    for(p of event.data.players) {
+      document.getElementById("playerList").textContent = p;
+    }
+  }
+  //console.log(event.data);
+};
+
+function startGame() {
+  ws.send(JSON.stringify({ state:"START" }));
+}
+
 /*
 ws.onopen = function() {
   ws.send('Hallo an Server!');
