@@ -30,7 +30,7 @@ public class Game {
 
       while(game.specialMode == SpecialMode.NOTSTARTED) {
     	try {
-    		new Thread(new Player(game, game.webSocket.accept()));
+    		new Thread(new Player(game, game.webSocket.accept())).start();
     	} catch(Exception ex) {
     		System.out.println("Socket could not connect to player.");
     	}

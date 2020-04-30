@@ -41,6 +41,7 @@ public class Player implements Runnable {
         // do handshake
         InputStream in = socket.getInputStream();
 		OutputStream out = socket.getOutputStream();
+		@SuppressWarnings("resource")
 		Scanner s = new Scanner(in, "UTF-8");
 		
 		try {
@@ -57,42 +58,35 @@ public class Player implements Runnable {
 					+ Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest((match.group(1) + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").getBytes("UTF-8")))
 					+ "\r\n\r\n").getBytes("UTF-8");
 				out.write(response, 0, response.length);
-				byte[] decoded = new byte[6];
-				byte[] encoded = new byte[] { (byte) 198, (byte) 131, (byte) 130, (byte) 182, (byte) 194, (byte) 135 };
-				byte[] key = new byte[] { (byte) 167, (byte) 225, (byte) 225, (byte) 210 };
-				for (int i = 0; i < encoded.length; i++) {
-					decoded[i] = (byte) (encoded[i] ^ key[i & 0x3]);
-				}
 			}
 		} finally {
-			s.close();
+			//s.close();
 		}
     }
 
     public void run() {
       if(socket != null) {
     	InputStream in = null;
-    	Scanner s = null;
         try {
           in = socket.getInputStream();
           //OutputStream out = socket.getOutputStream();
-          s = new Scanner(in, "UTF-8");
 
-          JSONObject msgObj = new JSONObject(s.nextLine());
-
+          JSONObject msgObj = parseNextMessage(in);
+          System.out.println(msgObj.toString());
           if(msgObj.get("status").equals("JOIN")) {
             if(msgObj.get("name") != "")
               cards = game.join(this);
             else
               throw new ProtocolException("Empty name.");
           }
-          msgObj = new JSONObject(s.nextLine());
+          
+          msgObj = parseNextMessage(in);
           if(msgObj.get("status").equals("START")) {
-            if(game.specialMode == SpecialMode.NOTSTARTED)
-              game.start();
-            else
-              throw new ProtocolException("Game has already been started.");
-              msgObj = new JSONObject(s.nextLine());
+        	  if(game.specialMode == SpecialMode.NOTSTARTED)
+        		  game.start();
+        	  else
+        		  throw new ProtocolException("Game has already been started.");
+            msgObj = parseNextMessage(in);
           }
 
           // ...
@@ -104,17 +98,19 @@ public class Player implements Runnable {
         } catch(IOException e) {
           System.out.println(name + ": IO receiving Error. " + e.getMessage());
         } finally {
-        	if(s != null) {
-        		s.close();
-        	}
+        	try {
+        		socket.close();
+        	} catch(IOException ex) {}
         }
       }
     }
 
     public class ProtocolException extends Exception {
-      public ProtocolException(String message) {
-        super(message);
-      }
+    	private static final long serialVersionUID = 1L;
+
+		public ProtocolException(String message) {
+	        super(message);
+	    }
     }
 
     public void send(String message) {
@@ -126,6 +122,33 @@ public class Player implements Runnable {
         System.out.println(name + ": IO sending Error. " + e.getMessage());
       }
 
+    }
+    
+    private JSONObject parseNextMessage(InputStream in) throws IOException, JSONException, ProtocolException {
+    	int b;
+    	//byte c = (byte) 129;
+    	if((b = in.read()) != 129) {
+    		do {
+    			System.out.print(b + ", ");
+    		} while((b = in.read()) != -1);
+    		System.out.println();
+    		throw new ProtocolException("Received message must not be separated into frames.");
+    	
+    	}
+    	
+		byte length = (byte) (in.read() - (byte)128);
+		
+		if(length < (byte) 127) {
+    		byte[] decoded = new byte[length];
+    		byte[] key = new byte[] { (byte) in.read(), (byte) in.read(), (byte) in.read(), (byte) in.read() };
+			for(byte i = 0; i < length; i++) {
+				decoded[i] = (byte) (in.read() ^ key[i & 0x3]);
+			}
+
+        	return new JSONObject(new String(decoded));
+		} else {
+			throw new ProtocolException("Implement longer messages.");
+		}
     }
 
     public void setNext(Player pNext) {
