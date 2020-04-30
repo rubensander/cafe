@@ -1,11 +1,8 @@
 package cafe;
 
-import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.lang.Runnable;
 import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -27,6 +24,8 @@ public class Player implements Runnable {
     private int status;
     private Game game;
     private Socket socket;
+    private InputStream in;
+    private OutputStream out;
 
     public Player(Game pGame, Socket pSocket) throws IOException, NoSuchAlgorithmException {
         game = pGame;
@@ -39,8 +38,8 @@ public class Player implements Runnable {
         socket = pSocket;
         
         // do handshake
-        InputStream in = socket.getInputStream();
-		OutputStream out = socket.getOutputStream();
+        in = socket.getInputStream();
+		out = socket.getOutputStream();
 		@SuppressWarnings("resource")
 		Scanner s = new Scanner(in, "UTF-8");
 		
@@ -66,27 +65,27 @@ public class Player implements Runnable {
 
     public void run() {
       if(socket != null) {
-    	InputStream in = null;
+    	//InputStream in = null;
         try {
-          in = socket.getInputStream();
+          //in = socket.getInputStream();
           //OutputStream out = socket.getOutputStream();
 
-          JSONObject msgObj = parseNextMessage(in);
+          JSONObject msgObj = parseNextMessage();
           System.out.println(msgObj.toString());
           if(msgObj.get("status").equals("JOIN")) {
-            if(msgObj.get("name") != "")
-              cards = game.join(this);
-            else
-              throw new ProtocolException("Empty name.");
+        	  if(msgObj.get("name") != "")
+        		  cards = game.join(this);
+        	  else
+        		  throw new ProtocolException("Empty name.");
           }
           
-          msgObj = parseNextMessage(in);
+          msgObj = parseNextMessage();
           if(msgObj.get("status").equals("START")) {
         	  if(game.specialMode == SpecialMode.NOTSTARTED)
         		  game.start();
         	  else
         		  throw new ProtocolException("Game has already been started.");
-            msgObj = parseNextMessage(in);
+            msgObj = parseNextMessage();
           }
 
           // ...
@@ -115,36 +114,36 @@ public class Player implements Runnable {
 
     public void send(String message) {
       try {
-        BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF8"));
-        out.write(message);
-        out.flush();
+        //BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF8"));
+    	 byte[] payload = message.getBytes("UTF-8");
+    	 byte[] packet = new byte[payload.length + 2];
+    	 packet[0] = (byte) 129;
+    	 packet[1] = (byte) payload.length;
+    	 for(int i = 0; i < payload.length; i++) {
+    		 packet[i + 2] = payload[i];
+    	 }
+    	 
+         out.write(packet, 0, packet.length);
       } catch(IOException e) {
         System.out.println(name + ": IO sending Error. " + e.getMessage());
       }
 
     }
     
-    private JSONObject parseNextMessage(InputStream in) throws IOException, JSONException, ProtocolException {
-    	int b;
-    	//byte c = (byte) 129;
-    	if((b = in.read()) != 129) {
-    		do {
-    			System.out.print(b + ", ");
-    		} while((b = in.read()) != -1);
-    		System.out.println();
+    private JSONObject parseNextMessage() throws IOException, JSONException, ProtocolException {
+    	if(in.read() != 129) {
     		throw new ProtocolException("Received message must not be separated into frames.");
-    	
     	}
-    	
-		byte length = (byte) (in.read() - (byte)128);
+
+		int length = in.read() - 128; // subtract "mask" bit
 		
-		if(length < (byte) 127) {
+		if(length < 126) {
     		byte[] decoded = new byte[length];
     		byte[] key = new byte[] { (byte) in.read(), (byte) in.read(), (byte) in.read(), (byte) in.read() };
 			for(byte i = 0; i < length; i++) {
 				decoded[i] = (byte) (in.read() ^ key[i & 0x3]);
 			}
-
+			
         	return new JSONObject(new String(decoded));
 		} else {
 			throw new ProtocolException("Implement longer messages.");
