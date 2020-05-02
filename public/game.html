@@ -12,23 +12,24 @@
   <script src="./js/game.js" charset="utf-8"></script>
 </head>
 <body>
-  <div class="welcome">
+  <p id="websocketStatus">Nicht verbunden</p>
+  <div id="welcome">
     Willkommen bei<br>Café International
   </div>
-  <div class="joinGame">
+  <div id="joinGame">
     <input class="stringInput" type="text" name="playerName" placeholder="Dein Name" id="inpPlayerName" />
     <button class="button" id="submitPlayername" onclick="joinGame()">OK</button>
   </div>
-  <div class="startGame">
+  <div id="startGame">
     <p id="playerList"></p>
     <button class="button" id="btnStartGame" onclick="startGame()" >Los geht's!</button>
   </div>
 
-  <div class="playerinfo" id="playerinfo">
-
+  <div id="playerinfo">
+    
   </div>
 
-  <div class="game">
+  <div id="game">
     <table>
       <tr>
         <td></td>
@@ -68,7 +69,7 @@
     </table>
   </div>
 
-  <div class="hand">
+  <div id="hand">
 
   </div>
 
