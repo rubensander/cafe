@@ -12,6 +12,7 @@ import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -73,10 +74,12 @@ public class Player implements Runnable {
           JSONObject msgObj = parseNextMessage();
           System.out.println(msgObj.toString());
           if(msgObj.get("status").equals("JOIN")) {
-        	  if(msgObj.get("name") != "")
+        	  if(! msgObj.getString("name").isEmpty()) {
+        		  name = msgObj.getString("name");
         		  cards = game.join(this);
-        	  else
-        		  throw new ProtocolException("Empty name.");
+        	  } else {
+        		  throw new ProtocolException("Empty name.");  
+        	  }
           }
           
           msgObj = parseNextMessage();
@@ -116,9 +119,19 @@ public class Player implements Runnable {
       try {
         //BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF8"));
     	 byte[] payload = message.getBytes("UTF-8");
-    	 byte[] packet = new byte[payload.length + 2];
+    	 byte[] packet;
+    	 if(payload.length < 126) {
+    		 packet = new byte[payload.length + 2];
+    		 packet[1] = (byte) payload.length;
+    	 } else {
+    		 packet = new byte[payload.length + 4];
+    		 packet[1] = (byte) 126;
+    		 packet[2] = (byte) (payload.length / 256);
+    		 packet[3] = (byte) (payload.length % 256);
+    	 }
+    	 
     	 packet[0] = (byte) 129;
-    	 packet[1] = (byte) payload.length;
+    	 
     	 for(int i = 0; i < payload.length; i++) {
     		 packet[i + 2] = payload[i];
     	 }
@@ -128,6 +141,23 @@ public class Player implements Runnable {
         System.out.println(name + ": IO sending Error. " + e.getMessage());
       }
 
+    }
+    
+    public void sendHand() {
+    	try {
+	    	JSONObject data = new JSONObject();
+	    	data.put("status", "HAND");
+	    	JSONArray jsonCards = new JSONArray();
+	    	for(Card card : cards) {
+	    		jsonCards.put(card.getNation().toString() + "_" + card.getSex().toString());
+	    	}
+	    	data.put("cards", jsonCards);
+	        String message = data.toString();
+	
+	        send(message);
+    	} catch(JSONException e) {
+    		System.out.println(name + ": JSON Error while sending hand. " + e.getMessage());
+    	}
     }
     
     private JSONObject parseNextMessage() throws IOException, JSONException, ProtocolException {

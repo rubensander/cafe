@@ -11,139 +11,183 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class Game {
-  Table[] tables = new Table[5];
-  Seat[] seats = new Seat[12];
-  Stack<Card> stack;
-  Stack<Nation> tableStack;
-  Player curPlayer;
-  SpecialMode specialMode;
-  public static int cMaxCards = 12;
+	Table[] tables = new Table[5];
+	Seat[] seats = new Seat[12];
+	Stack<Card> stack;
+	Stack<Nation> tableStack;
+	Player curPlayer;
+	SpecialMode specialMode;
+	public static int cMaxCards = 12;
 
-  ServerSocket webSocket;
-
-
-  public static void main(String args[]) {
-
-    Game game = new Game();
-    try {
-      game.startWebSocket();
-
-      while(game.specialMode == SpecialMode.NOTSTARTED) {
-    	try {
-    		new Thread(new Player(game, game.webSocket.accept())).start();
-    	} catch(Exception ex) {
-    		System.out.println("Socket could not connect to player.");
-    	}
-      }
-
-      game.webSocket.close();
-      
-      //game.start();
-    } catch(IOException ex) {
-        System.out.println("Websocket server failed starting: " + ex.getMessage());
-      }
-  }
-
-  public Game() {
-    for(int i = 0; i < 5; i++) {
-      tables[i] = new Table(Nation.GERMANY);
-    }
-    for(int i = 0; i < 4; i++) {
-      seats[3*i] = new CenterSeat(tables[i], tables[(i+3)%4], tables[4]);
-      seats[3*i+1] = new Seat(tables[i]);
-      seats[3*i+2] = new Seat(tables[i]);
-    }
-
-    stack = new Stack<Card>();
-    for(Nation nation : Nation.values()) {
-      for(int j = 0; j < 4; j++) {
-        stack.push(new Card(nation, Sex.FEMALE));
-        stack.push(new Card(nation, Sex.MALE));
-      }
-    }
-    Collections.shuffle(stack);
-
-    tableStack = new Stack<Nation>();
-    for(Nation nation : Nation.values()) {
-      tableStack.push(nation);
-      tableStack.push(nation);
-    }
-    Collections.shuffle(tableStack);
-
-    curPlayer = null;
-    specialMode = SpecialMode.NOTSTARTED;
-    //createSzenario();
-  }
-
-  public void startWebSocket() throws IOException {
-    webSocket = new ServerSocket(2855);
-    System.out.println("Websocket server started on port 2855.");
-  }
-
-  public void broadcast(String status, JSONObject data) throws JSONException {
-    data.put("status", status);
-    String message = data.toString();
-
-    Player p = curPlayer;
-    do {
-      p.send(message);
-      p = p.getNext();
-    } while(p != curPlayer);
-  }
-
-  public ArrayList<Card> join(Player pSender) {
-    // broadcast message of new player having joined
-    JSONObject msgObj = new JSONObject();
-
-    try {
-      if(curPlayer == null) {
-        msgObj.put("enableStart", new Boolean(false));
-      } else {
-        pSender.setNext(curPlayer.getNext());
-        curPlayer.setNext(pSender);
-        msgObj.put("enableStart", new Boolean(true));
-      }
-      curPlayer = pSender;
-
-      // get player list
-      JSONArray players = new JSONArray();
-      Player p = curPlayer;
-      do {
-        players.put(p.getName());
-        p = p.getNext();
-      } while(p != curPlayer);
-      msgObj.put("players", players);
-
-      broadcast("NEW_PLAYER", msgObj);
-    } catch(JSONException e) {
-      System.out.println(e.getMessage());
-    } finally {
-      curPlayer = pSender;
-    }
-
-    // draw start cards
-    ArrayList<Card> startCards = new ArrayList<Card>();
-    for(int i = 0; i < 7; i++) {
-      startCards.add(stack.peek());
-      stack.pop();
-    }
-    return startCards;
-  }
+	ServerSocket webSocket;
 
 
-  public void start() {/*
-    for(int i = 0; i < 5; i++) {
-      tables[i].setNation(tableStack.pop());
-    }
-    if(curPlayer != null) {
-      curPlayer = curPlayer.getNext();
-      curPlayer.beginTurn();
-    }
-    specialMode = SpecialMode.FIRSTCARD;
-    Printer.printGraphic(seats, tables);
-    System.out.println();
-    Printer.printPlayerWithIndex(curPlayer);
+	public static void main(String args[]) {
 
+		Game game = new Game();
+		try {
+			game.startWebSocket();
+
+			while(game.specialMode == SpecialMode.NOTSTARTED) {
+				try {
+					// TODO: keep track of threads
+					new Thread(new Player(game, game.webSocket.accept())).start();
+				} catch(Exception e) {
+					if(game.webSocket.isClosed())
+						break;
+					else
+						System.out.println("Socket could not connect to player: " + e.getMessage());
+				}
+			}
+
+			game.webSocket.close();
+
+			//game.start();
+		} catch(IOException ex) {
+			System.out.println("Websocket server failed starting: " + ex.getMessage());
+		}
+	}
+
+	public Game() {
+		for(int i = 0; i < 5; i++) {
+			tables[i] = new Table(Nation.DE);
+		}
+		for(int i = 0; i < 4; i++) {
+			seats[3*i] = new CenterSeat(tables[i], tables[(i+3)%4], tables[4]);
+			seats[3*i+1] = new Seat(tables[i]);
+			seats[3*i+2] = new Seat(tables[i]);
+		}
+
+		stack = new Stack<Card>();
+		for(Nation nation : Nation.values()) {
+			for(int j = 0; j < 4; j++) {
+				stack.push(new Card(nation, Sex.f));
+				stack.push(new Card(nation, Sex.m));
+			}
+		}
+		Collections.shuffle(stack);
+
+		tableStack = new Stack<Nation>();
+		for(Nation nation : Nation.values()) {
+			tableStack.push(nation);
+			tableStack.push(nation);
+		}
+		Collections.shuffle(tableStack);
+
+		curPlayer = null;
+		specialMode = SpecialMode.NOTSTARTED;
+		//createSzenario();
+	}
+
+	public void startWebSocket() throws IOException {
+		webSocket = new ServerSocket(2855);
+		System.out.println("Websocket server started on port 2855.");
+	}
+
+	public void broadcast(String status, JSONObject data) {
+		try {
+			data.put("status", status);
+			String message = data.toString();
+
+			Player p = curPlayer;
+			do {
+				p.send(message);
+				p = p.getNext();
+			} while(p != curPlayer);
+		} catch(JSONException e) {
+			System.out.println("Broadcast failed: Could not add status to JSONObject. Status: " + status + ". Data: " + data.toString());
+		}
+	}
+
+	public void broadcastBoard() {
+		// create table array for JSON
+		JSONArray jsonTables = new JSONArray();
+		for(int i = 0; i < 5; i++) {
+			jsonTables.put(tables[i].getNation().toString() + "_t");
+		}
+		// create seat array for JSON
+		JSONArray jsonSeats = new JSONArray();
+		for(int i = 0; i < 12; i++) {
+			jsonSeats.put((seats[i].getNation() != null ? seats[i].getNation().toString() : "XX") + "_" + 
+					(seats[i].getSex() != null ? seats[i].getSex().toString() : "x"));
+		}
+		try {
+			broadcast("BOARD", new JSONObject().put("tables", jsonTables).put("seats", jsonSeats));
+		}  catch(JSONException e) {
+			System.out.println(e.getMessage());
+		}
+	}
+
+	public ArrayList<Card> join(Player pSender) {
+		// broadcast message of new player having joined
+		JSONObject msgObj = new JSONObject();
+
+		try {
+			if(curPlayer == null) {
+				msgObj.put("enableStart", new Boolean(false));
+			} else {
+				pSender.setNext(curPlayer.getNext());
+				curPlayer.setNext(pSender);
+				msgObj.put("enableStart", new Boolean(true));
+			}
+			curPlayer = pSender;
+
+			// get player list (in correct order)
+			JSONArray players = new JSONArray();
+			Player p = curPlayer.getNext();
+			do {
+				players.put(p.getName());
+				p = p.getNext();
+			} while(p != curPlayer.getNext());
+			msgObj.put("players", players);
+
+			broadcast("NEW_PLAYER", msgObj);
+		} catch(JSONException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			curPlayer = pSender;
+		}
+
+		// draw start cards
+		ArrayList<Card> startCards = new ArrayList<Card>();
+		for(int i = 0; i < 7; i++) {
+			startCards.add(stack.peek());
+			stack.pop();
+		}
+		return startCards;
+	}
+
+
+	public void start() {
+		try {
+			if(curPlayer == null) {
+				System.out.println("curPlayer not defined. Starting game aborted.");
+				return;
+			} else if(curPlayer.getNext() == curPlayer) {
+				System.out.println("Not more than one player. Starting game aborted.");
+				return;
+			}
+			broadcast("STARTED", new JSONObject());
+
+			for(int i = 0; i < 5; i++) {
+				tables[i].setNation(tableStack.pop());
+			}
+			broadcastBoard();
+
+			// send hand cards
+			Player p = curPlayer;
+			do {
+				p.sendHand();
+				p = p.getNext();
+			} while(p != curPlayer);
+
+			curPlayer = curPlayer.getNext();
+			curPlayer.beginTurn();
+			specialMode = SpecialMode.FIRSTCARD;
+			curPlayer.send("{\"status\":\"YOUR_TURN\"}");
+
+			//Printer.printPlayerWithIndex(curPlayer);
+			/*
     Scanner scanner = new Scanner(System.in);
     int iCard, iSeat;
     ErrType err = ErrType.NONE;
@@ -210,55 +254,61 @@ public class Game {
       }
       //System.out.println("");
     }
-*/
-    try {
-      webSocket.close();
-    } catch(IOException e) {}
-  }
+			 */
+			System.out.println("Game started");
 
-  public void end() {
-    Printer.printRanking(curPlayer);
-  }
+		//} catch(JSONException e) {
+		//	System.out.println(e.getMessage());
+		} finally {
+			try {
+				webSocket.close();
+			} catch(IOException e) {}
+		}
+	}
 
-  public void exchangeFullTables() {
-    boolean[] fullTables = new boolean[5];
+	public void end() {
+		Printer.printRanking(curPlayer);
+	}
 
-    for(int i = 0; i < 5; i++) {
-      fullTables[i] = tables[i].isFull();
-    }
-    for(int i = 0; i < 5; i++) {
-      if(fullTables[i]) {
-        tables[i].empty();
-        if(!tableStack.empty())
-        tables[i].setNation(tableStack.pop());
-        else
-        end();
-      }
-    }
+	public void exchangeFullTables() {
+		boolean[] fullTables = new boolean[5];
 
-    if(specialMode == SpecialMode.FIRSTCARD) {
-      specialMode = SpecialMode.SECONDCARD;
-    } else if(specialMode == SpecialMode.SECONDCARD) {
-      specialMode  = SpecialMode.NONE;
-    } else {
-      boolean noSeatTaken = true;
-      for(Seat seat : seats) {
-        if(seat.isTaken()) {
-          noSeatTaken = false;
-          break;
-        }
-      }
-      if(noSeatTaken) {
-        specialMode = SpecialMode.FIRSTCARD;
-      }
-    }
-  }
+		for(int i = 0; i < 5; i++) {
+			fullTables[i] = tables[i].isFull();
+		}
+		for(int i = 0; i < 5; i++) {
+			if(fullTables[i]) {
+				tables[i].empty();
+				if(!tableStack.empty())
+					tables[i].setNation(tableStack.pop());
+				else
+					end();
+			}
+		}
 
-  public Card popCard() {
-    return stack.pop();
-  }
+		if(specialMode == SpecialMode.FIRSTCARD) {
+			specialMode = SpecialMode.SECONDCARD;
+		} else if(specialMode == SpecialMode.SECONDCARD) {
+			specialMode  = SpecialMode.NONE;
+		} else {
+			boolean noSeatTaken = true;
+			for(Seat seat : seats) {
+				if(seat.isTaken()) {
+					noSeatTaken = false;
+					break;
+				}
+			}
+			if(noSeatTaken) {
+				specialMode = SpecialMode.FIRSTCARD;
+			}
+		}
+	}
 
-  /*
+	public Card popCard() {
+		return stack.pop();
+	}
+
+	/*
   private void createSzenario() {
   tables[4].setNation(Nation.FRANCE);
   seats[1].set(new Card(Nation.GERMANY, Sex.MALE));
@@ -290,5 +340,5 @@ case "US" :  seats[seat].set(new Card(Nation.USA, sex)); break;
 }
 Printer.printGraphic(seats, tables);
 }
-*/
+	 */
 }
