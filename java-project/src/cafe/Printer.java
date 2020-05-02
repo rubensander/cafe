@@ -84,9 +84,9 @@ public abstract class Printer {
     }
 
     private static String getAbbBySex(Sex pSex) {
-        if(pSex == Sex.MALE)
+        if(pSex == Sex.m)
             return "m";
-        else if(pSex == Sex.FEMALE)
+        else if(pSex == Sex.f)
             return "f";
         else
             return "";

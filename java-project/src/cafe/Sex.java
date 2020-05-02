@@ -1,5 +1,6 @@
 package cafe;
 
 public enum Sex {
-    FEMALE, MALE
+    /*FEMALE, MALE*/
+	m, f;
 }
