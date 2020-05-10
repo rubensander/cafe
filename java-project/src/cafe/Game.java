@@ -2,9 +2,11 @@ package cafe;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Stack;
+
 //import java.util.*;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -23,21 +25,48 @@ public class Game {
 
 
 	public static void main(String args[]) {
-
 		Game game = new Game();
+		
 		try {
 			game.startWebSocket();
 
 			while(game.specialMode == SpecialMode.NOTSTARTED) {
 				try {
-					// TODO: keep track of threads
-					new Thread(new Player(game, game.webSocket.accept())).start();
+					Socket socket = game.webSocket.accept();
+					if(game.curPlayer == null) {
+						new Thread(new Player(game, socket)).start();
+					} else {
+						// is the new connection from an already existing player?
+						Player p = game.curPlayer;
+						boolean isReconnection;
+						do {
+							if(isReconnection = p.offerReconnection(socket)) break;
+							p = p.getNext();
+						} while(p != game.curPlayer);
+						if(isReconnection) 
+							new Thread(p).start();
+						else // no match -> new player
+							new Thread(new Player(game, socket)).start();
+					}
 				} catch(Exception e) {
 					if(game.webSocket.isClosed())
 						break;
 					else
 						System.out.println("Socket could not connect to player: " + e.getMessage());
 				}
+			}
+			
+			// reconnect player's socket if connection was lost
+			while(game.specialMode != SpecialMode.ENDED) {
+				Socket socket = game.webSocket.accept();
+				Player p = game.curPlayer;
+				do {
+					if(p.offerReconnection(socket)) {
+						new Thread(p).start();
+						break;
+					}
+					p = p.getNext();
+				} while(p != game.curPlayer);
 			}
 
 			game.webSocket.close();
@@ -91,7 +120,11 @@ public class Game {
 
 			Player p = curPlayer;
 			do {
-				p.send(message);
+				try {
+					p.send(message);
+				} catch(IOException e) {
+					System.out.println("Could not broadcast to player " + p.getName());
+				}
 				p = p.getNext();
 			} while(p != curPlayer);
 		} catch(JSONException e) {
@@ -117,7 +150,7 @@ public class Game {
 			System.out.println(e.getMessage());
 		}
 	}
-
+	
 	public ArrayList<Card> join(Player pSender) {
 		// broadcast message of new player having joined
 		JSONObject msgObj = new JSONObject();
@@ -159,32 +192,35 @@ public class Game {
 
 
 	public void start() {
-		try {
-			if(curPlayer == null) {
-				System.out.println("curPlayer not defined. Starting game aborted.");
-				return;
-			} else if(curPlayer.getNext() == curPlayer) {
-				System.out.println("Not more than one player. Starting game aborted.");
-				return;
-			}
-			broadcast("STARTED", new JSONObject());
+		if(curPlayer == null) {
+			System.out.println("curPlayer not defined. Starting game aborted.");
+			return;
+		} else if(curPlayer.getNext() == curPlayer) {
+			System.out.println("Not more than one player. Starting game aborted.");
+			return;
+		}
+		broadcast("STARTED", new JSONObject());
 
-			for(int i = 0; i < 5; i++) {
-				tables[i].setNation(tableStack.pop());
-			}
-			broadcastBoard();
+		for(int i = 0; i < 5; i++) {
+			tables[i].setNation(tableStack.pop());
+		}
+		broadcastBoard();
 
-			// send hand cards
-			Player p = curPlayer;
-			do {
+		// send hand cards
+		Player p = curPlayer;
+		do {
+			try {
 				p.sendHand();
-				p = p.getNext();
-			} while(p != curPlayer);
-
-			curPlayer = curPlayer.getNext();
-			curPlayer.beginTurn();
-			specialMode = SpecialMode.FIRSTCARD;
-			curPlayer.send("{\"status\":\"YOUR_TURN\"}");
+			} catch(IOException e) {
+				System.out.println("Could not send hand to player " + p.getName());
+			}
+			p = p.getNext();
+		} while(p != curPlayer);
+		
+		System.out.println("Game started");
+		curPlayer = curPlayer.getNext();
+		curPlayer.beginTurn();
+		specialMode = SpecialMode.FIRSTCARD;
 
 			//Printer.printPlayerWithIndex(curPlayer);
 			/*
@@ -255,15 +291,9 @@ public class Game {
       //System.out.println("");
     }
 			 */
-			System.out.println("Game started");
 
 		//} catch(JSONException e) {
 		//	System.out.println(e.getMessage());
-		} finally {
-			try {
-				webSocket.close();
-			} catch(IOException e) {}
-		}
 	}
 
 	public void end() {
@@ -307,7 +337,11 @@ public class Game {
 	public Card popCard() {
 		return stack.pop();
 	}
-
+	
+	public Seat getSeatByNr(int seatNr) {
+		return seats[seatNr];
+	}
+	
 	/*
   private void createSzenario() {
   tables[4].setNation(Nation.FRANCE);

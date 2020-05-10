@@ -2,6 +2,14 @@
 //img.src = "./img/DE_t.svg";
 
 const ws = new WebSocket("ws://" + location.host.slice(0,-1) + "5");
+var validMoves;
+//const hand = document.getElementById("hand");
+
+function submitName(event) {
+  if(event.keyCode === 13) {
+    joinGame();
+  }
+}
 
 function joinGame() {
   var name = document.getElementById("inpPlayerName").value;
@@ -47,6 +55,7 @@ ws.onmessage = function(event) {
       break;
     case "STARTED":
       document.getElementById("welcome").style.display = "none";
+      document.getElementById("joinGame").style.display = "none";
       document.getElementById("startGame").style.display = "none";
       document.getElementById("game").style.display = "inline-block";
       break;
@@ -59,13 +68,26 @@ ws.onmessage = function(event) {
           document.getElementById("seat" + iSeat).src = "./img/" + msgObj.seats[iSeat] + ".svg";
         //}
       }
+      break;
     case "HAND":
-      var hand = document.getElementById("hand");
+      for(node of document.getElementById("hand").childNodes) {
+        document.getElementById("hand").removeChild(node);
+      }
       for(card of msgObj.cards) {
-        var imgElement = document.createElement("img");
-        imgElement.setAttribute("src", "./img/" + card + ".svg");
-        imgElement.setAttribute("alt", "na");
-        hand.appendChild(imgElement);
+        var img = document.createElement("img");
+        img.src = "./img/" + card + ".svg";
+        img.style.display = "inline-block";
+        img.ondragstart = drag;
+        img.draggable = false;
+        document.getElementById("hand").appendChild(img);
+      }
+    case "VALID_MOVES":
+      validMoves = msgObj.validMoves;
+      break;
+    case "YOUR_TURN":
+      document.getElementById("whoseTurn").textContent = " – Du bist am Zug";
+      for(node of document.getElementById("hand").childNodes) {
+        node.draggable = true;
       }
   }
 };
@@ -77,6 +99,43 @@ ws.onclose = function(code, reason) {
 
 function startGame() {
   ws.send(JSON.stringify({ status:"START" }));
+}
+
+
+// drag and drop of cards
+function drag(ev) {
+   ev.dataTransfer.setData("imgSrc", ev.target.src);
+   var cardNr;
+   for(cardNr = 0; cardNr < document.getElementById("hand").childElementCount; cardNr++) {
+     if(document.getElementById("hand").childNodes[cardNr] == ev.target) break;
+   }
+   ev.dataTransfer.setData("cardNr", cardNr);
+   ws.send(JSON.stringify({ status:"GET_VALID_MOVES", cardNr }));
+}
+function drop(ev) {
+  ev.preventDefault();
+  var seatNr = ev.target.id.slice(4);
+  var cardNr = ev.dataTransfer.getData("cardNr");
+
+  if(validMoves[seatNr] == "NONE") {
+    ev.target.style.border = "";
+    ev.target.src = ev.dataTransfer.getData("imgSrc");
+    ws.send(JSON.stringify({ status:"SET_CARD", cardNr, seatNr }));
+    document.getElementById("hand").removeChild(document.getElementById("hand").childNodes[cardNr]);
+  } else {
+    console.log("This is not a valid move: " + validMoves[seatNr]);
+  }
+}
+function allowDrop(ev) {
+  ev.preventDefault();
+}
+function dragEnter(ev) {
+  if(validMoves[ev.target.id.slice(4)] == "NONE") {
+    ev.target.style.border = "solid #00CC00";
+  }
+}
+function dragLeave(ev) {
+  ev.target.style.border = "";
 }
 
 /*
