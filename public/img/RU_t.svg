@@ -8,14 +8,14 @@
 	 x="0px" y="0px" width="167px" height="258px" viewBox="0.002 0.003 167 258" enable-background="new 0.002 0.003 167 258"
 	 xml:space="preserve">
 <defs>
-	<symbol  id="FR" viewBox="-42.52 -42.52 85.039 85.039">
-		<g>
-			<polygon fill="none" points="19.845,-37.604 19.845,37.604 19.844,37.604 19.844,-37.605 			"/>
-			<path fill="#FFFFFF" d="M19.844,37.604C13.919,40.737,7.169,42.519,0,42.519c-7.168,0-13.916-1.781-19.841-4.914v-75.212
-				C-13.916-40.739-7.168-42.52,0-42.52c7.169,0,13.919,1.782,19.844,4.915V37.604z"/>
-			<path fill="#0055A4" d="M-42.52,0c0-16.315,9.193-30.476,22.679-37.606v75.212C-33.326,30.476-42.52,16.314-42.52,0z"/>
-			<path fill="#EF4531" d="M42.52,0c0,16.313-9.192,30.474-22.675,37.604v-75.208C33.327-30.474,42.52-16.313,42.52,0z"/>
-		</g>
+	<symbol  id="RU" viewBox="-42.52 -42.519 85.038 85.038">
+		<path fill="none" d="M0,42.52c-0.007,0-0.013,0-0.02,0H0.02C0.013,42.519,0.007,42.52,0,42.52z"/>
+		<path fill="#FFFFFF" d="M0.02,42.519H-0.02c-18.504-0.008-34.235-11.839-40.071-28.346H40.09
+			C34.253,30.68,18.521,42.511,0.02,42.519z"/>
+		<path fill="#0039A6" d="M42.519,0c0,4.971-0.861,9.739-2.429,14.173h-80.181C-41.658,9.739-42.52,4.971-42.52,0
+			s0.861-9.739,2.429-14.173H40.09C41.657-9.739,42.519-4.971,42.519,0z"/>
+		<path fill="#D52B1E" d="M40.09-14.173h-80.181C-34.253-30.686-18.512-42.519,0-42.519C18.511-42.519,34.251-30.686,40.09-14.173z"
+			/>
 	</symbol>
 	<symbol  id="Rand" viewBox="5.377 -252.996 156.49 248.039">
 		<g id="weiß_2_">
@@ -53,11 +53,11 @@
 	<path fill="#0057A3" d="M167.244,240.945c0,9.354-7.653,17.008-17.008,17.008H17.008C7.653,257.953,0,250.3,0,240.945V17.008
 		C0,7.653,7.653,0,17.008,0h133.229c9.354,0,17.008,7.653,17.008,17.008V240.945z"/>
 </g>
-<use xlink:href="#FR"  width="85.039" height="85.039" x="-42.52" y="-42.52" transform="matrix(0.2333 0 0 -0.2333 150.8008 242.0752)" overflow="visible"/>
-<use xlink:href="#FR"  width="85.039" height="85.039" x="-42.52" y="-42.52" transform="matrix(0.2333 0 0 -0.2333 150.7998 15.8809)" overflow="visible"/>
-<use xlink:href="#FR"  width="85.039" height="85.039" x="-42.52" y="-42.52" transform="matrix(0.2333 0 0 -0.2333 16.2979 242.0752)" overflow="visible"/>
-<use xlink:href="#FR"  width="85.039" height="85.039" x="-42.52" y="-42.52" transform="matrix(0.2333 0 0 -0.2333 16.2979 15.8809)" overflow="visible"/>
-<use xlink:href="#FR"  width="85.039" height="85.039" id="XMLID_7_" x="-42.52" y="-42.52" transform="matrix(1 0 0 -1 83.6211 128.9761)" overflow="visible"/>
+<use xlink:href="#RU"  width="85.038" height="85.038" x="-42.52" y="-42.519" transform="matrix(0.2333 0 0 -0.2333 150.709 242.0752)" overflow="visible"/>
+<use xlink:href="#RU"  width="85.038" height="85.038" x="-42.52" y="-42.519" transform="matrix(0.2333 0 0 -0.2333 150.708 15.8809)" overflow="visible"/>
+<use xlink:href="#RU"  width="85.038" height="85.038" x="-42.52" y="-42.519" transform="matrix(0.2333 0 0 -0.2333 16.2061 242.0752)" overflow="visible"/>
+<use xlink:href="#RU"  width="85.038" height="85.038" x="-42.52" y="-42.519" transform="matrix(0.2333 0 0 -0.2333 16.2061 15.8809)" overflow="visible"/>
+<use xlink:href="#RU"  width="85.038" height="85.038" id="XMLID_5_" x="-42.52" y="-42.519" transform="matrix(1 0 0 -1 83.6211 128.9766)" overflow="visible"/>
+<use xlink:href="#Rand"  width="156.49" height="248.039" x="5.377" y="-252.996" transform="matrix(1 0 0 -1 0.002 0.0029)" overflow="visible"/>
 <use xlink:href="#Stühle"  width="126.867" height="163.99" x="20.226" y="-210.972" transform="matrix(1 0 0 -1 0.002 0.0029)" overflow="visible"/>
-<use xlink:href="#Rand"  width="156.49" height="248.039" id="XMLID_5_" x="5.377" y="-252.996" transform="matrix(1 0 0 -1 0.002 0.0029)" overflow="visible"/>
 </svg>

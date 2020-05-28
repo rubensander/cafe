@@ -8,8 +8,8 @@ node_modules
 package-lock.json
 *.log
 *.gz
-java-project/cafe
-java-project/cafe.jar
+java-project/bin
+java-project/doc
 
 
 # Coveralls

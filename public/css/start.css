@@ -1,10 +1,31 @@
-.joinGame {
-  display: inline-block;
+#welcome {
+  font-size: 10vmin;
+  color: #0057A3;
+  padding-top: 20vmin;
+  margin-bottom: 10vmin;
 }
+
 
 .stringInput {
   border-color: #CCCCCC;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 5vmin;
   padding: 2vmin;
+}
+
+.p {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 5vmin;
+}
+
+#websocketStatus {
+  color: #CC0000;
+}
+
+#playerList {
+  color: #0057A3;
+}
+
+#btnStartGame {
+  display: none;
 }

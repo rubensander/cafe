@@ -1,40 +1,181 @@
-var img = new Image();
-var id = -1;
-img.src = "./img/DE_t.svg";
+//var img = new Image();
+//img.src = "./img/DE_t.svg";
 
-function changeTables() {
-  ws.send("CHANGE");
+const ws = new WebSocket("ws://" + location.host.slice(0,-1) + "5");
+var validMoves;
+const hand = document.getElementById("hand");
+var name = "";
+var selectedCard = -1;
+
+// before the start of the game
+
+function joinGame() {
+  name = document.getElementById("inpPlayerName").value;
+  if(ws.readyState == 0) {
+    console.log("Websocket connection has not yet been established.");
+  } else if(name == "") {
+    console.log("Name must not be empty");
+  } else {
+    ws.send(JSON.stringify({ status:"JOIN", name }));
+  }
+}
+
+function submitName(event) {
+  if(event.keyCode === 13) {
+    joinGame();
+  }
 }
 
 function addPlayer() {
   ws.send(document.getElementById("inpPlayerName").value);
-    /*for(let i = 0; i < 12; i++) {
-        set(drawCard(), i);
-    }*/
 }
 
-const ws = new WebSocket('ws://192.168.2.114:8080');
-/*
+function startGame() {
+  ws.send(JSON.stringify({ status:"START" }));
+}
+
+// websocket callback functions
+
 ws.onopen = function() {
-  ws.send('Hallo an Server!');
-};*/
+  document.getElementById("websocketStatus").style.color = "#00CC00";
+  document.getElementById("websocketStatus").textContent  = "Verbunden";
+};
 
 ws.onmessage = function(event) {
-  if(id == -1) {
-    id = event.data;
-    document.getElementById("playerinfo").innerHTML = "Player ID: " + id;
-  } else {
-    showGameState(JSON.parse(event.data));
+  var msgObj = JSON.parse(event.data);
+  console.log(msgObj);
+  switch(msgObj.status) {
+    case "NEW_PLAYER":
+      if(msgObj.enableStart) {
+        document.getElementById("btnStartGame").style.display = "inline-block";
+      }
+      document.getElementById("joinGame").style.display = "none";
+      document.getElementById("playerList").textContent = msgObj.players[0];
+      for(let i = 1; i < msgObj.players.length; i++) {
+        document.getElementById("playerList").textContent += ", " + msgObj.players[i];
+      }
+      break;
+    case "STARTED":
+      document.getElementById("welcome").style.display = "none";
+      document.getElementById("joinGame").style.display = "none";
+      document.getElementById("startGame").style.display = "none";
+      document.getElementById("game").style.display = "inline-block";
+      break;
+    case "BOARD":
+      for(let iTable = 0; iTable < 5; iTable++) {
+         document.getElementById("table" + iTable).src = "./img/" + msgObj.tables[iTable] + ".svg";
+      }
+      for(let iSeat = 0; iSeat < 12; iSeat++) {
+        //if(state.seats[iSeat].card) {
+          document.getElementById("seat" + iSeat).src = "./img/" + msgObj.seats[iSeat] + ".svg";
+        //}
+      }
+      break;
+    case "HAND":
+      for(node of hand.childNodes) {
+        hand.removeChild(node);
+      }
+      for(card of msgObj.cards) {
+        var img = document.createElement("img");
+        img.src = "./img/" + card + ".svg";
+        img.style.display = "inline-block";
+        img.ondragstart = drag;
+        img.draggable = false;
+        img.onclick = selectCard;
+        hand.appendChild(img);
+      }
+    case "VALID_MOVES":
+      validMoves = msgObj.validMoves;
+      break;
+    case "TURN_OF":
+      if(msgObj.yourName != undefined)
+        name = msgObj.yourName;
+      if(msgObj.player == name) {
+        document.getElementById("whoseTurn").textContent = "– Du bist am Zug";
+        for(node of hand.childNodes) {
+          node.draggable = true;
+        }
+      } else {
+        document.getElementById("whoseTurn").textContent = "– " + msgObj.player + " ist am Zug";
+      }
+      break;
   }
 };
 
-function showGameState(state) {
-  for(let iTable = 0; iTable < 5; iTable++) {
-     document.getElementById("table" + iTable).src = "./img/" + state.tables[iTable].nation + "_t.svg";
+ws.onclose = function(code, reason) {
+    document.getElementById("websocketStatus").style.color = "#CC0000";
+    document.getElementById("websocketStatus").textContent  = "Nicht verbunden";
+}
+
+// drag and drop of cards
+
+function drag(ev) {
+   ev.dataTransfer.setData("imgSrc", ev.target.src);
+   var cardNr;
+   for(cardNr = 0; cardNr < hand.childElementCount; cardNr++) {
+     if(hand.childNodes[cardNr] == ev.target) break;
+   }
+   ev.dataTransfer.setData("cardNr", cardNr);
+   ws.send(JSON.stringify({ status:"GET_VALID_MOVES", cardNr }));
+}
+
+function dragEnter(ev) {
+  if(validMoves[ev.target.id.slice(4)] == "NONE") {
+    ev.target.style.border = "solid #00CC00";
   }
-  for(let iSeat = 0; iSeat < 12; iSeat++) {
-    if(state.seats[iSeat].card) {
-      document.getElementById("seat" + iSeat).src = "./img/" + state.seats[iSeat].nation + "_" + state.seats[iSeat].sex + ".svg";
-    }
+}
+
+function dragLeave(ev) {
+  ev.target.style.border = "";
+}
+
+function allowDrop(ev) {
+  ev.preventDefault();
+}
+
+function drop(ev) {
+  ev.preventDefault();
+  var seatNr = ev.target.id.slice(4);
+  var cardNr = ev.dataTransfer.getData("cardNr");
+
+  if(validMoves[seatNr] == "NONE") {
+    ev.target.style.border = "";
+    ev.target.src = ev.dataTransfer.getData("imgSrc");
+    ws.send(JSON.stringify({ status:"SET_CARD", cardNr, seatNr }));
+    hand.removeChild(hand.childNodes[cardNr]);
+  } else {
+    console.log("This is not a valid move: " + validMoves[seatNr]);
+  }
+}
+
+function selectCard(ev) {
+  if(selectedCard > -1 && selectedCard < hand.childElementCount)
+    hand.childNodes[selectedCard].style.border = "";
+
+  var newCard;
+  for(newCard = 0; newCard < hand.childElementCount; newCard++) {
+    if(hand.childNodes[newCard] == ev.target) break;
+  }
+  if(newCard == selectedCard) {
+    selectedCard = -1;
+  } else {
+    selectedCard = newCard;
+    ev.target.style.border = "solid #00CC00";
+    ws.send(JSON.stringify({ status:"GET_VALID_MOVES", cardNr:newCard }));
+  }
+}
+
+function setIfSelected(ev) {
+  ev.preventDefault();
+  var seatNr = ev.target.id.slice(4);
+
+  if(validMoves[seatNr] == "NONE") {
+    ev.target.style.border = "";
+    ev.target.src = hand.childNodes[selectedCard].src;
+    ws.send(JSON.stringify({ status:"SET_CARD", cardNr: selectedCard, seatNr }));
+    hand.removeChild(hand.childNodes[selectedCard]);
+    selectedCard = -1;
+  } else {
+    console.log("This is not a valid move: " + validMoves[seatNr]);
   }
 }

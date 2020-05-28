@@ -5,54 +5,73 @@
 
   <title>Café International</title>
 
-  <link rel="stylesheet" type="text/css" href="./css/style.css">
-
-  <script src="./js/game.js" charset="utf-8"></script>
+  <link rel="stylesheet" type="text/css" href="./css/master.css">
+  <link rel="stylesheet" type="text/css" href="./css/start.css">
+  <link rel="stylesheet" type="text/css" href="./css/game.css">
 </head>
 <body>
-  <div class="playerinfo" id="playerinfo">
+  <p>
+    <div class="divText" id="websocketStatus">Nicht verbunden</div>
+    <div class="divText" id="whoseTurn"></div>
+  </p>
+
+  <div id="welcome">
+    Willkommen bei<br>Café International
+  </div>
+  <div id="joinGame">
+    <input class="stringInput" type="text" name="playerName" placeholder="Dein Name" id="inpPlayerName" onkeyup="submitName(event)" />
+    <button class="button" id="btnJoinGame" onclick="joinGame()">OK</button>
+  </div>
+  <div id="startGame">
+    <p id="playerList"></p>
+    <button class="button" id="btnStartGame" onclick="startGame()" >Los geht's!</button>
+  </div>
+
+  <div id="playerinfo">
 
   </div>
-  <table>
-    <tr>
-      <td></td>
-      <td class="seat"><img src="./img/XX_x.svg" alt="Seat 2" id="seat2"></td>
-      <td></td>
-      <td class="seat"><img src="./img/XX_x.svg" alt="Seat 4" id="seat4"></td>
-      <td></td>
-    </tr>
-    <tr>
-      <td class="seat"><img src="./img/XX_x.svg" alt="Seat 1" id="seat1"></td>
-      <td class="table"><img src="./img/XX_t.svg" alt="Table 0" id="table0"></td>
-      <td class="seat"><img src="./img/XX_x.svg" alt="Seat 3" id="seat3"></td>
-      <td class="table"><img src="./img/XX_t.svg" alt="Table 1" id="table1"></td>
-      <td class="seat"><img src="./img/XX_x.svg" alt="Seat 5" id="seat5"></td>
-    </tr>
-    <tr>
-      <td></td>
-      <td class="seat"><img src="./img/XX_x.svg" alt="Seat 0" id="seat0"></td>
-      <td class="table"><img src="./img/XX_t.svg" alt="Table 4" id="table4"></td>
-      <td class="seat"><img src="./img/XX_x.svg" alt="Seat 6" id="seat6"></td>
-      <td></td>
-    </tr>
-    <tr>
-      <td class="seat"><img src="./img/XX_x.svg" alt="Seat 11" id="seat11"></td>
-      <td class="table"><img src="./img/XX_t.svg" alt="Table 3" id="table3"></td>
-      <td class="seat"><img src="./img/XX_x.svg" alt="Seat 9" id="seat9"></td>
-      <td class="table"><img src="./img/XX_t.svg" alt="Table 2" id="table2"></td>
-      <td class="seat"><img src="./img/XX_x.svg" alt="Seat 7" id="seat7"></td>
-    </tr>
-    <tr>
-      <td></td>
-      <td class="seat"><img src="./img/XX_x.svg" alt="Seat 10" id="seat10"></td>
-      <td></td>
-      <td class="seat"><img src="./img/XX_x.svg" alt="Seat 8" id="seat8"></td>
-      <td></td>
-    </tr>
-  </table>
 
-  <div class="hand">
-    
+  <div id="game">
+    <table>
+      <tr>
+        <td></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 2" id="seat2" draggable="false"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+        <td></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 4" id="seat4" draggable="false"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 1" id="seat1" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+        <td><img class="table" src="./img/XX_t.svg" alt="Table 0" id="table0" draggable="false"></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 3" id="seat3" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+        <td><img class="table" src="./img/XX_t.svg" alt="Table 1" id="table1" draggable="false"></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 5" id="seat5" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 0" id="seat0" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+        <td><img class="table" src="./img/XX_t.svg" alt="Table 4" id="table4" draggable="false"></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 6" id="seat6" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 11" id="seat11" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+        <td><img class="table" src="./img/XX_t.svg" alt="Table 3" id="table3" draggable="false"></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 9" id="seat9" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+        <td><img class="table" src="./img/XX_t.svg" alt="Table 2" id="table2" draggable="false"></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 7" id="seat7" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 10" id="seat10" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+        <td></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 8" id="seat8" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+        <td></td>
+      </tr>
+    </table>
+  </div>
+
+  <div id="hand">
   </div>
 
   <div class="button_div">
@@ -60,5 +79,7 @@
     <input type="text" name="inpPlayerName" value="Player" id="inpPlayerName">
     <button type="button" name="btnAdd" onclick="addPlayer()" id="btnAdd">+</button>
   </div>
+
+  <script src="./js/game.js" charset="utf-8"></script>
 </body>
 </html>
