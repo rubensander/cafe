@@ -27,3 +27,7 @@ html, body {
   cursor: pointer;
   background-color: #00B3F2;
 }
+
+.divText {
+  display: inline-block;
+}

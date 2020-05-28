@@ -8,6 +8,7 @@ import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Scanner;
 import java.util.regex.Matcher;
@@ -107,24 +108,21 @@ public class Player implements Runnable {
 						int cardNr = msgObj.getInt("cardNr");
 						JSONArray jsonValidMoves = new JSONArray();
 						for(int iSeat = 0; iSeat < 12; iSeat++) {
-							jsonValidMoves.put(game.getSeatByNr(iSeat).isValidMove(cards.get(cardNr), game.specialMode));
+							if(status == -1)
+								jsonValidMoves.put(ErrType.SB_ELSES_TURN);
+							else
+								jsonValidMoves.put(game.getSeatByNr(iSeat).isValidMove(cards.get(cardNr), game.specialMode));
 						}
 						JSONObject resObj = new JSONObject().put("status", "VALID_MOVES");
 						resObj.put("validMoves", jsonValidMoves);
 						send(resObj.toString());
+					} else {
+						System.out.println(name + ": Unknown message: " + msgObj.toString());
 					}
 				} catch(JSONException e) {
 					System.out.println(name + "JSON error. Message was not sent or processed.");
 				}
-				try {
-					msgObj = parseNextMessage();
-				} catch(WebsocketException e) {
-					if(e.opcode == 0x8 && e.length == 2 && (16 * e.payload[0] + e.payload[1]) == 1001) {
-						// web socket closed by peer
-						break;
-					}
-					
-				}
+				msgObj = parseNextMessage();
 			}
 		} catch(JSONException e) {
 			System.out.println(name + ": JSON error. " + e.getMessage());
@@ -133,7 +131,10 @@ public class Player implements Runnable {
 		} catch(IOException e) {
 			System.out.println(name + ": IO receiving Error. " + e.getMessage());
 		} catch(WebsocketException e) {
-			System.out.println(name + ": Websocket Error. Opcode: " + e.opcode + ". Payload: " + e.payload.toString() + ".");
+			if(e.opcode == 8) 
+				System.out.println(name + ": Websocket closed by client. Payload: " + Arrays.toString(e.payload) + ".");
+			else
+				System.out.println(name + ": Websocket Error. Opcode: " + e.opcode + ". Length: " + e.length + ". Payload: " + Arrays.toString(e.payload) + ".");
 		} finally {
 			try {
 				in.close();
@@ -146,6 +147,8 @@ public class Player implements Runnable {
 	public boolean offerReconnection(Socket newSocket) {
 		String oldAddr = ((InetSocketAddress) socket.getRemoteSocketAddress()).getHostName();
 		String newAddr = ((InetSocketAddress) newSocket.getRemoteSocketAddress()).getHostName();
+		System.out.println(name + ": " + socket.toString() + "->" + newSocket.toString());
+		//TODO: cookie for session id?
 		if(socket == null || socket.isClosed() && oldAddr.equals(newAddr)) {
 			socket = newSocket;
 			try {
@@ -177,6 +180,7 @@ public class Player implements Runnable {
 					send("{\"status\":\"STARTED\"}");
 					sendHand();
 					game.broadcastBoard();
+					send("{\"status\":\"TURN_OF\", \"player\":\"" + game.curPlayer.getName() + "\", \"yourName\":\"" + name + "\"}");
 				}
 				return true;
 				
@@ -362,9 +366,9 @@ public class Player implements Runnable {
 		status = 0;
 		game.curPlayer = this;
 		try {
-			send("{\"status\":\"YOUR_TURN\"}");
-		} catch(IOException e) {
-			System.out.println(name + " was not reached to begin his/her turn. Waiting for reconnect.");
+			game.broadcast("TURN_OF", new JSONObject().put("player", name));
+		} catch(JSONException e) {
+			System.out.println(name + ": JSON Error while creating beginTurn JSONObject.");
 		}
 	}
 

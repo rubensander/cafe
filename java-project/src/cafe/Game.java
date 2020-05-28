@@ -29,46 +29,33 @@ public class Game {
 		
 		try {
 			game.startWebSocket();
-
-			while(game.specialMode == SpecialMode.NOTSTARTED) {
+			Socket socket = game.webSocket.accept();
+			
+			while(game.specialMode != SpecialMode.ENDED) {
 				try {
-					Socket socket = game.webSocket.accept();
-					if(game.curPlayer == null) {
-						new Thread(new Player(game, socket)).start();
-					} else {
-						// is the new connection from an already existing player?
-						Player p = game.curPlayer;
-						boolean isReconnection;
+					boolean isReconnection = false;
+					Player p = game.curPlayer;
+					if(game.curPlayer != null) {
+						// is the new connection a reconnection from an already existing player?
 						do {
 							if(isReconnection = p.offerReconnection(socket)) break;
 							p = p.getNext();
 						} while(p != game.curPlayer);
-						if(isReconnection) 
-							new Thread(p).start();
-						else // no match -> new player
-							new Thread(new Player(game, socket)).start();
 					}
+					
+					if(isReconnection) 
+						new Thread(p).start();
+					else if(game.specialMode == SpecialMode.NOTSTARTED) // no match -> new player if game not started
+						new Thread(new Player(game, socket)).start();
 				} catch(Exception e) {
 					if(game.webSocket.isClosed())
 						break;
 					else
 						System.out.println("Socket could not connect to player: " + e.getMessage());
 				}
+				socket = game.webSocket.accept();
 			}
 			
-			// reconnect player's socket if connection was lost
-			while(game.specialMode != SpecialMode.ENDED) {
-				Socket socket = game.webSocket.accept();
-				Player p = game.curPlayer;
-				do {
-					if(p.offerReconnection(socket)) {
-						new Thread(p).start();
-						break;
-					}
-					p = p.getNext();
-				} while(p != game.curPlayer);
-			}
-
 			game.webSocket.close();
 
 			//game.start();

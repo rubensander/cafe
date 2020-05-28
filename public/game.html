@@ -8,12 +8,11 @@
   <link rel="stylesheet" type="text/css" href="./css/master.css">
   <link rel="stylesheet" type="text/css" href="./css/start.css">
   <link rel="stylesheet" type="text/css" href="./css/game.css">
-
-  <script src="./js/game.js" charset="utf-8"></script>
 </head>
 <body>
   <p>
-    <div id="websocketStatus">Nicht verbunden</div><div id="whoseTurn"></div>
+    <div class="divText" id="websocketStatus">Nicht verbunden</div>
+    <div class="divText" id="whoseTurn"></div>
   </p>
 
   <div id="welcome">
@@ -36,37 +35,37 @@
     <table>
       <tr>
         <td></td>
-        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 2" id="seat2" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)"></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 2" id="seat2" draggable="false"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
         <td></td>
-        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 4" id="seat4"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)"></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 1" id="seat1"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)"></td>
-        <td><img class="table" src="./img/XX_t.svg" alt="Table 0" id="table0"></td>
-        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 3" id="seat3"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)"></td>
-        <td><img class="table" src="./img/XX_t.svg" alt="Table 1" id="table1"></td>
-        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 5" id="seat5"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)"></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 0" id="seat0"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)"></td>
-        <td><img class="table" src="./img/XX_t.svg" alt="Table 4" id="table4"></td>
-        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 6" id="seat6"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)"></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 4" id="seat4" draggable="false"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
         <td></td>
       </tr>
       <tr>
-        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 11" id="seat11"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)"></td>
-        <td><img class="table" src="./img/XX_t.svg" alt="Table 3" id="table3"></td>
-        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 9" id="seat9"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)"></td>
-        <td><img class="table" src="./img/XX_t.svg" alt="Table 2" id="table2"></td>
-        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 7" id="seat7"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)"></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 1" id="seat1" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+        <td><img class="table" src="./img/XX_t.svg" alt="Table 0" id="table0" draggable="false"></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 3" id="seat3" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+        <td><img class="table" src="./img/XX_t.svg" alt="Table 1" id="table1" draggable="false"></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 5" id="seat5" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
       </tr>
       <tr>
         <td></td>
-        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 10" id="seat10"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)"></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 0" id="seat0" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+        <td><img class="table" src="./img/XX_t.svg" alt="Table 4" id="table4" draggable="false"></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 6" id="seat6" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
         <td></td>
-        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 8" id="seat8"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)"></td>
+      </tr>
+      <tr>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 11" id="seat11" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+        <td><img class="table" src="./img/XX_t.svg" alt="Table 3" id="table3" draggable="false"></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 9" id="seat9" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+        <td><img class="table" src="./img/XX_t.svg" alt="Table 2" id="table2" draggable="false"></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 7" id="seat7" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 10" id="seat10" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
+        <td></td>
+        <td><img class="seat" src="./img/XX_x.svg" alt="Seat 8" id="seat8" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
         <td></td>
       </tr>
     </table>
@@ -80,5 +79,7 @@
     <input type="text" name="inpPlayerName" value="Player" id="inpPlayerName">
     <button type="button" name="btnAdd" onclick="addPlayer()" id="btnAdd">+</button>
   </div>
+
+  <script src="./js/game.js" charset="utf-8"></script>
 </body>
 </html>

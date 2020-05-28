@@ -3,16 +3,14 @@
 
 const ws = new WebSocket("ws://" + location.host.slice(0,-1) + "5");
 var validMoves;
-//const hand = document.getElementById("hand");
+const hand = document.getElementById("hand");
+var name = "";
+var selectedCard = -1;
 
-function submitName(event) {
-  if(event.keyCode === 13) {
-    joinGame();
-  }
-}
+// before the start of the game
 
 function joinGame() {
-  var name = document.getElementById("inpPlayerName").value;
+  name = document.getElementById("inpPlayerName").value;
   if(ws.readyState == 0) {
     console.log("Websocket connection has not yet been established.");
   } else if(name == "") {
@@ -22,17 +20,21 @@ function joinGame() {
   }
 }
 
-function startGame() {
-  ws.send(JSON.stringify({ status:"START" }));
+function submitName(event) {
+  if(event.keyCode === 13) {
+    joinGame();
+  }
 }
 
 function addPlayer() {
   ws.send(document.getElementById("inpPlayerName").value);
-    /*for(let i = 0; i < 12; i++) {
-        set(drawCard(), i);
-    }*/
 }
 
+function startGame() {
+  ws.send(JSON.stringify({ status:"START" }));
+}
+
+// websocket callback functions
 
 ws.onopen = function() {
   document.getElementById("websocketStatus").style.color = "#00CC00";
@@ -70,8 +72,8 @@ ws.onmessage = function(event) {
       }
       break;
     case "HAND":
-      for(node of document.getElementById("hand").childNodes) {
-        document.getElementById("hand").removeChild(node);
+      for(node of hand.childNodes) {
+        hand.removeChild(node);
       }
       for(card of msgObj.cards) {
         var img = document.createElement("img");
@@ -79,16 +81,24 @@ ws.onmessage = function(event) {
         img.style.display = "inline-block";
         img.ondragstart = drag;
         img.draggable = false;
-        document.getElementById("hand").appendChild(img);
+        img.onclick = selectCard;
+        hand.appendChild(img);
       }
     case "VALID_MOVES":
       validMoves = msgObj.validMoves;
       break;
-    case "YOUR_TURN":
-      document.getElementById("whoseTurn").textContent = " – Du bist am Zug";
-      for(node of document.getElementById("hand").childNodes) {
-        node.draggable = true;
+    case "TURN_OF":
+      if(msgObj.yourName != undefined)
+        name = msgObj.yourName;
+      if(msgObj.player == name) {
+        document.getElementById("whoseTurn").textContent = "– Du bist am Zug";
+        for(node of hand.childNodes) {
+          node.draggable = true;
+        }
+      } else {
+        document.getElementById("whoseTurn").textContent = "– " + msgObj.player + " ist am Zug";
       }
+      break;
   }
 };
 
@@ -97,21 +107,32 @@ ws.onclose = function(code, reason) {
     document.getElementById("websocketStatus").textContent  = "Nicht verbunden";
 }
 
-function startGame() {
-  ws.send(JSON.stringify({ status:"START" }));
-}
-
-
 // drag and drop of cards
+
 function drag(ev) {
    ev.dataTransfer.setData("imgSrc", ev.target.src);
    var cardNr;
-   for(cardNr = 0; cardNr < document.getElementById("hand").childElementCount; cardNr++) {
-     if(document.getElementById("hand").childNodes[cardNr] == ev.target) break;
+   for(cardNr = 0; cardNr < hand.childElementCount; cardNr++) {
+     if(hand.childNodes[cardNr] == ev.target) break;
    }
    ev.dataTransfer.setData("cardNr", cardNr);
    ws.send(JSON.stringify({ status:"GET_VALID_MOVES", cardNr }));
 }
+
+function dragEnter(ev) {
+  if(validMoves[ev.target.id.slice(4)] == "NONE") {
+    ev.target.style.border = "solid #00CC00";
+  }
+}
+
+function dragLeave(ev) {
+  ev.target.style.border = "";
+}
+
+function allowDrop(ev) {
+  ev.preventDefault();
+}
+
 function drop(ev) {
   ev.preventDefault();
   var seatNr = ev.target.id.slice(4);
@@ -121,44 +142,40 @@ function drop(ev) {
     ev.target.style.border = "";
     ev.target.src = ev.dataTransfer.getData("imgSrc");
     ws.send(JSON.stringify({ status:"SET_CARD", cardNr, seatNr }));
-    document.getElementById("hand").removeChild(document.getElementById("hand").childNodes[cardNr]);
+    hand.removeChild(hand.childNodes[cardNr]);
   } else {
     console.log("This is not a valid move: " + validMoves[seatNr]);
   }
 }
-function allowDrop(ev) {
-  ev.preventDefault();
-}
-function dragEnter(ev) {
-  if(validMoves[ev.target.id.slice(4)] == "NONE") {
-    ev.target.style.border = "solid #00CC00";
+
+function selectCard(ev) {
+  if(selectedCard > -1 && selectedCard < hand.childElementCount)
+    hand.childNodes[selectedCard].style.border = "";
+
+  var newCard;
+  for(newCard = 0; newCard < hand.childElementCount; newCard++) {
+    if(hand.childNodes[newCard] == ev.target) break;
   }
-}
-function dragLeave(ev) {
-  ev.target.style.border = "";
-}
-
-/*
-ws.onopen = function() {
-  ws.send('Hallo an Server!');
-};
-
-ws.onmessage = function(event) {
-  if(id == -1) {
-    id = event.data;
-    document.getElementById("playerinfo").innerHTML = "Player ID: " + id;
+  if(newCard == selectedCard) {
+    selectedCard = -1;
   } else {
-    showGameState(JSON.parse(event.data));
+    selectedCard = newCard;
+    ev.target.style.border = "solid #00CC00";
+    ws.send(JSON.stringify({ status:"GET_VALID_MOVES", cardNr:newCard }));
   }
-};
+}
 
-function showGameState(state) {
-  for(let iTable = 0; iTable < 5; iTable++) {
-     document.getElementById("table" + iTable).src = "./img/" + state.tables[iTable].nation + "_t.svg";
+function setIfSelected(ev) {
+  ev.preventDefault();
+  var seatNr = ev.target.id.slice(4);
+
+  if(validMoves[seatNr] == "NONE") {
+    ev.target.style.border = "";
+    ev.target.src = hand.childNodes[selectedCard].src;
+    ws.send(JSON.stringify({ status:"SET_CARD", cardNr: selectedCard, seatNr }));
+    hand.removeChild(hand.childNodes[selectedCard]);
+    selectedCard = -1;
+  } else {
+    console.log("This is not a valid move: " + validMoves[seatNr]);
   }
-  for(let iSeat = 0; iSeat < 12; iSeat++) {
-    if(state.seats[iSeat].card) {
-      document.getElementById("seat" + iSeat).src = "./img/" + state.seats[iSeat].nation + "_" + state.seats[iSeat].sex + ".svg";
-    }
-  }
-}*/
+}
