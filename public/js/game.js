@@ -75,14 +75,9 @@ ws.onmessage = function(event) {
       for(node of hand.childNodes) {
         hand.removeChild(node);
       }
+      let i = 0;
       for(card of msgObj.cards) {
-        var img = document.createElement("img");
-        img.src = "./img/" + card + ".svg";
-        img.style.display = "inline-block";
-        img.ondragstart = drag;
-        img.draggable = false;
-        img.onclick = selectCard;
-        hand.appendChild(img);
+        addHandcard(card);
       }
     case "VALID_MOVES":
       validMoves = msgObj.validMoves;
@@ -97,8 +92,25 @@ ws.onmessage = function(event) {
         }
       } else {
         document.getElementById("whoseTurn").textContent = "– " + msgObj.player + " ist am Zug";
+        document.getElementById("btnEndTurn").style.display = "none";
       }
       break;
+    case "DRAWN":
+      addHandcard(msgObj.card);
+      break;
+    case "ERR":
+      document.getElementById("websocketStatus").style.display = "none";
+      document.getElementById("whoseTurn").style.display = "none";
+      document.getElementById("error").style.display = "inline-block";
+      document.getElementById("error").textContent = msgObj.message;
+      var interval = setInterval(revert, 1000);
+
+      function revert() {
+        document.getElementById("websocketStatus").style.display = "inline-block";
+        document.getElementById("whoseTurn").style.display = "inline-block";
+        document.getElementById("error").style.display = "none";
+        clearInterval(interval);
+      }
   }
 };
 
@@ -143,6 +155,7 @@ function drop(ev) {
     ev.target.src = ev.dataTransfer.getData("imgSrc");
     ws.send(JSON.stringify({ status:"SET_CARD", cardNr, seatNr }));
     hand.removeChild(hand.childNodes[cardNr]);
+    document.getElementById("btnEndTurn").style.display = "inline-block";
   } else {
     console.log("This is not a valid move: " + validMoves[seatNr]);
   }
@@ -174,8 +187,28 @@ function setIfSelected(ev) {
     ev.target.src = hand.childNodes[selectedCard].src;
     ws.send(JSON.stringify({ status:"SET_CARD", cardNr: selectedCard, seatNr }));
     hand.removeChild(hand.childNodes[selectedCard]);
+    document.getElementById("btnEndTurn").style.display = "inline-block";
     selectedCard = -1;
   } else {
     console.log("This is not a valid move: " + validMoves[seatNr]);
   }
+}
+
+function endTurn() {
+   ws.send(JSON.stringify({ status:"END_TURN" }));
+}
+
+function drawCard() {
+  ws.send(JSON.stringify({ status:"DRAW" }));
+}
+
+function addHandcard(card) {
+  var img = document.createElement("img");
+  img.src = "./img/" + card + ".svg";
+  img.ondragstart = drag;
+  img.draggable = false;
+  img.onclick = selectCard;
+  img.className = "handcard";
+  //img.style.left = document.getElementById("game").width + i++ / msgObj.cards.length * 100 + "%";
+  hand.appendChild(img);
 }

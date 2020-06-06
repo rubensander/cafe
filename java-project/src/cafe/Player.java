@@ -96,15 +96,12 @@ public class Player implements Runnable {
 					if(msgObj.get("status").equals("SET_CARD")) {
 						selectCard(msgObj.getInt("cardNr"));
 						ErrType err = placeCardAt(game.getSeatByNr(msgObj.getInt("seatNr")));
-						if(err == ErrType.NONE) {
+						if(err == ErrType.NONE)
 							game.broadcastBoard();
-						} else {
-							JSONObject errObj = new JSONObject();
-							errObj.put("status", "ERR");
-							errObj.put("message", game.curPlayer.getName() + " ist am Zug!");
-							send(errObj.toString());
-						}
-					} else if(msgObj.get("status").equals("GET_VALID_MOVES")) {
+						else 
+							sendErr(game.curPlayer.getName() + " ist am Zug!");
+					}
+					else if(msgObj.get("status").equals("GET_VALID_MOVES")) {
 						int cardNr = msgObj.getInt("cardNr");
 						JSONArray jsonValidMoves = new JSONArray();
 						for(int iSeat = 0; iSeat < 12; iSeat++) {
@@ -116,7 +113,25 @@ public class Player implements Runnable {
 						JSONObject resObj = new JSONObject().put("status", "VALID_MOVES");
 						resObj.put("validMoves", jsonValidMoves);
 						send(resObj.toString());
-					} else {
+					}
+					else if(msgObj.get("status").equals("DRAW")) { 
+						ErrType err = drawCard();
+						if(err == ErrType.NONE) {
+							Card card = cards.get(cards.size() - 1);
+							JSONObject resObj = new JSONObject().put("status", "DRAWN");
+							resObj.put("card", card.getNation().toString() + "_" + card.getSex().toString());
+							send(resObj.toString());
+						} else
+							sendErr(err.toString());
+					}
+					else if(msgObj.get("status").equals("END_TURN")) {
+						ErrType err = endTurn();
+						if(err == ErrType.NONE)
+							game.broadcastBoard();
+						else 
+							sendErr(err.toString());
+					}
+					else {
 						System.out.println(name + ": Unknown message: " + msgObj.toString());
 					}
 				} catch(JSONException e) {
@@ -244,6 +259,18 @@ public class Player implements Runnable {
 			System.out.println(name + ": JSON Error while sending hand. " + e.getMessage());
 		}
 	}
+	
+	private void sendErr(String message) throws IOException {
+		try {
+			JSONObject errObj = new JSONObject();
+			errObj.put("status", "ERR");
+			errObj.put("message", message);
+			
+			send(errObj.toString());
+		} catch(JSONException e) {
+			System.out.println(name + ": JSON Error while sending error message. " + e.getMessage());
+		}
+	}
 
 	private JSONObject parseNextMessage() throws IOException, WebsocketException {
 		int status = in.read();
@@ -293,16 +320,18 @@ public class Player implements Runnable {
 		return next;
 	}
 
-	public boolean takeCard() {
-		if(cards.size() < 12) {
-			cards.add(game.popCard());
-			status = 1;
-			endTurn();
-			return true;
-		}
-		return false;
+	private ErrType drawCard() {
+		if(status == -1) 
+			return ErrType.SB_ELSES_TURN;
+		if(cards.size() >= 12)
+			return ErrType.TOO_MANY_HANDCARDS;
+		
+		cards.add(game.popCard());
+		status = 1;
+		endTurn();
+		return ErrType.NONE;
 	}
-
+	
 	public int getPoints() {
 		return points;
 	}
@@ -311,17 +340,13 @@ public class Player implements Runnable {
 		return name;
 	}
 
-	public ArrayList<Card> getCards() {
-		return cards;
-	}
-
-	public void selectCard(int index) {
+	private void selectCard(int index) {
 		if(index >= 0 && index < cards.size()) {
 			selectedCard = index;
 		}
 	}
 
-	public void layDownCard() {
+	private void layDownCard() {
 		if(selectedCard != -1) {
 			cards.remove(selectedCard);
 			points -= 2;
@@ -329,25 +354,25 @@ public class Player implements Runnable {
 		}
 	}
 
-	public ErrType placeCardAt(Seat pSeat) {
-		if(status != -1) {
-			ErrType err = pSeat.isValidMove(cards.get(selectedCard), game.specialMode);
-			if(err == ErrType.NONE) {
-				pSeat.set(cards.get(selectedCard));
-				cards.remove(selectedCard);
-				selectedCard = -1;
-				status++;
-				points += pSeat.getPoints();
-				game.exchangeFullTables();
-				if(status == 3) endTurn();
-				return ErrType.NONE;
-			}
-			return err;
+	private ErrType placeCardAt(Seat pSeat) {
+		if(status == -1)
+			return ErrType.SB_ELSES_TURN;
+		
+		ErrType err = pSeat.isValidMove(cards.get(selectedCard), game.specialMode);
+		if(err == ErrType.NONE) {
+			pSeat.set(cards.get(selectedCard));
+			cards.remove(selectedCard);
+			selectedCard = -1;
+			status++;
+			points += pSeat.getPoints();
+			game.exchangeFullTables();
+			if(status == 3) endTurn();
+			return ErrType.NONE;
 		}
-		return ErrType.SB_ELSES_TURN;
+		return err;
 	}
 
-	public boolean takeBackCard() {
+	private boolean takeBackCard() {
 		if(game.specialMode == SpecialMode.SECONDCARD) {
 			status = 0;
 			for(Seat seat : game.seats) {
@@ -372,7 +397,9 @@ public class Player implements Runnable {
 		}
 	}
 
-	public ErrType endTurn() {
+	private ErrType endTurn() {
+		if(status == -1) 
+			return ErrType.SB_ELSES_TURN;
 		if(game.specialMode == SpecialMode.SECONDCARD)
 			return ErrType.ALONE;
 		if(status == 0)

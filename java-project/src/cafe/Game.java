@@ -47,6 +47,8 @@ public class Game {
 						new Thread(p).start();
 					else if(game.specialMode == SpecialMode.NOTSTARTED) // no match -> new player if game not started
 						new Thread(new Player(game, socket)).start();
+					else
+						System.out.println("Did not connect to " + socket.toString());
 				} catch(Exception e) {
 					if(game.webSocket.isClosed())
 						break;
@@ -284,7 +286,7 @@ public class Game {
 	}
 
 	public void end() {
-		Printer.printRanking(curPlayer);
+		
 	}
 
 	public void exchangeFullTables() {
@@ -322,7 +324,11 @@ public class Game {
 	}
 
 	public Card popCard() {
-		return stack.pop();
+		if(stack.isEmpty()) {
+			broadcast("END_OF_GAME", new JSONObject());
+			return null;
+		} else
+			return stack.pop();
 	}
 	
 	public Seat getSeatByNr(int seatNr) {

@@ -23,11 +23,11 @@ html, body {
   text-align: center;
 }
 
-.button:hover {
+.button:hover, .smallButton:hover {
   cursor: pointer;
   background-color: #00B3F2;
 }
 
 .divText {
-  display: inline-block;
+  margin: 1vh;
 }

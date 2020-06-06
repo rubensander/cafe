@@ -10,10 +10,11 @@
   <link rel="stylesheet" type="text/css" href="./css/game.css">
 </head>
 <body>
-  <p>
-    <div class="divText" id="websocketStatus">Nicht verbunden</div>
-    <div class="divText" id="whoseTurn"></div>
-  </p>
+  <div class="divText">
+    <span id="websocketStatus">Nicht verbunden</span>
+    <span id="whoseTurn"></span>
+    <span id="error"></span>
+  </div>
 
   <div id="welcome">
     Willkommen bei<br>Café International
@@ -34,11 +35,11 @@
   <div id="game">
     <table>
       <tr>
-        <td></td>
+        <td><img src="./img/XX_r.svg" alt="Draw Pile" id="drawpile" onclick="drawCard()"></td>
         <td><img class="seat" src="./img/XX_x.svg" alt="Seat 2" id="seat2" draggable="false"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
         <td></td>
         <td><img class="seat" src="./img/XX_x.svg" alt="Seat 4" id="seat4" draggable="false"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
-        <td></td>
+        <td><button class="smallButton" id="btnEndTurn" onclick="endTurn()">&#10004;</button></td>
       </tr>
       <tr>
         <td><img class="seat" src="./img/XX_x.svg" alt="Seat 1" id="seat1" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
@@ -70,14 +71,7 @@
       </tr>
     </table>
   </div>
-
   <div id="hand">
-  </div>
-
-  <div class="button_div">
-    <button type="button" name="btnChange" onclick="changeTables()" id="btnTest">Change</button>
-    <input type="text" name="inpPlayerName" value="Player" id="inpPlayerName">
-    <button type="button" name="btnAdd" onclick="addPlayer()" id="btnAdd">+</button>
   </div>
 
   <script src="./js/game.js" charset="utf-8"></script>

@@ -6,13 +6,19 @@
   display: none;
 }
 
+#error {
+  display: none;
+  color: #C00;
+}
+
 img {
   border-style: solid;
-  border-color: #FFFFFF;
+  border-color: #FFFFFF00;
   border-radius: 5px;
-  height: 15vh;
+  border-width: 0.5vh;
+  height: 13vh;
   margin: 0;
-  padding: 0.3vh;
+  padding: 0.2vh;
 }
 
 img:hover {
@@ -31,10 +37,26 @@ td, tr {
   padding: 0;
 }
 
-.button_div {
-  display:none;
+#hand {
+  height: 14.4vh;
 }
 
-#hand > img {
-  display: none;
+.handcard {
+  /*position: absolute;*/
+}
+
+.smallButton {
+  background-color: #0057A3;
+  border-color: #0057A3;
+  border-radius: 1vh;
+  color: white;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 3vmin;
+  padding: 2vmin 2vmin;
+  text-align: center;
+  width: 8.4vh;
+}
+
+#btnEndTurn {
+  /*display: none;*/
 }
