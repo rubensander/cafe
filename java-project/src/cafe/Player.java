@@ -96,8 +96,15 @@ public class Player implements Runnable {
 				try {
 					if(msgObj.get("status").equals("SET_CARD")) {
 						ErrType err = placeCardAt(game.getSeatByNr(msgObj.getInt("seatNr")), msgObj.getInt("cardNr"));
-						if(err == ErrType.NONE)
-							game.broadcastBoard();
+						if(err == ErrType.NONE) {
+							JSONObject resObj = new JSONObject().put("status", "POINTS");
+							resObj.put("points", points);
+							send(resObj.toString());
+							if(game.specialMode == SpecialMode.ENDED)
+								break;
+							else
+								game.broadcastBoard();
+						}
 						else 
 							sendErr(game.curPlayer.getName() + " ist am Zug!");
 					}
@@ -141,6 +148,8 @@ public class Player implements Runnable {
 							send(resObj.toString());
 						}
 					}
+					else if(msgObj.get("status").equals("GAME_ENDED"))
+						break;
 					else {
 						System.out.println(name + ": Unknown message: " + msgObj.toString());
 					}
@@ -376,6 +385,8 @@ public class Player implements Runnable {
 			game.exchangeFullTables();
 			if(game.specialMode == SpecialMode.SECONDCARD || game.specialMode == SpecialMode.CIRCLE)
 				laidUnderReserve.push(pSeat);
+			else if(game.specialMode == SpecialMode.ENDED)
+				return ErrType.NONE;
 			else
 				laidUnderReserve.clear();
 			if(status == 3) endTurn();
@@ -386,16 +397,15 @@ public class Player implements Runnable {
 
 	private Card takeBackCard() {
 		Card cardTakenBack = null;
-		if(game.specialMode == SpecialMode.SECONDCARD) {
-			cardTakenBack = laidUnderReserve.pop().empty();
+		if(game.specialMode == SpecialMode.SECONDCARD || game.specialMode == SpecialMode.CIRCLE) {
+			Seat seat = laidUnderReserve.pop();
+			points -= seat.getPoints();
+			cardTakenBack = seat.empty();
 			cards.add(cardTakenBack);
 			status--;
-			game.specialMode = SpecialMode.FIRSTCARD;
-		} else if(game.specialMode == SpecialMode.CIRCLE) {
-			cardTakenBack = laidUnderReserve.pop().empty();
-			cards.add(cardTakenBack);
-			status--;
-			if(laidUnderReserve.isEmpty()) {
+			if(game.specialMode == SpecialMode.SECONDCARD) 
+				game.specialMode = SpecialMode.FIRSTCARD;
+			else if(laidUnderReserve.isEmpty()) { // && CIRCLE
 				game.specialMode = SpecialMode.NONE;
 			}
 		}

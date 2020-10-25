@@ -106,6 +106,20 @@ ws.onmessage = function(event) {
     case "DRAWN":
       addHandcard(msgObj.card);
       break;
+    case "POINTS":
+      document.getElementById("points").textContent = msgObj.points;
+      break;
+    case "END":
+      if(document.getElementById("whoseTurn").textContent === "– Du bist am Zug") {
+        wsEnd = new WebSocket("ws://" + location.host.slice(0,-1) + "5");
+        setTimeout(function() {
+          ws.close();
+        }, 1000);
+      }
+      document.getElementById("whoseTurn").textContent = msgObj.winners + " hat gewonnen!";
+      ws.send(JSON.stringify({ status:"GAME_ENDED" }));
+      document.getElementById("websocketStatus").style.display = "none";
+      break;
     case "ERR":
       document.getElementById("websocketStatus").style.display = "none";
       document.getElementById("whoseTurn").style.display = "none";

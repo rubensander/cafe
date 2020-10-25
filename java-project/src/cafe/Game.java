@@ -60,7 +60,7 @@ public class Game {
 			
 			game.webSocket.close();
 
-			//game.start();
+			System.out.println("Game ended");
 		} catch(IOException ex) {
 			System.out.println("Websocket server failed starting: " + ex.getMessage());
 		}
@@ -286,7 +286,25 @@ public class Game {
 	}
 
 	public void end() {
+		specialMode = SpecialMode.ENDED;
 		
+		Stack<Player> winners = new Stack<Player>();
+		winners.push(curPlayer);
+		Player p = curPlayer.getNext();
+		do {
+			if(p.getPoints() >= winners.firstElement().getPoints()) {
+				if(p.getPoints() > winners.firstElement().getPoints()) winners.clear();
+				winners.push(p);
+			}
+			p = p.getNext();
+		} while(p != curPlayer);
+		JSONArray winnerNames = new JSONArray();
+		for(Player winner : winners)
+			winnerNames.put(winner.getName());
+		try {
+			broadcast("END", new JSONObject().put("winners", winnerNames));
+		} catch (JSONException e) {
+		}
 	}
 
 	public void exchangeFullTables() {
@@ -300,8 +318,10 @@ public class Game {
 				tables[i].empty();
 				if(!tableStack.empty())
 					tables[i].setNation(tableStack.pop());
-				else
+				else {
 					end();
+					return;
+				}
 			}
 		}
 
