@@ -16,18 +16,25 @@ public class CenterSeat extends Seat {
     public ErrType isValidMove(Card pCard, SpecialMode pMode) {
         if(taken) {
             return ErrType.SEAT_IS_TAKEN;
-        }
-        if(table.getNation() != pCard.getNation() && table2.getNation() != pCard.getNation() && table3.getNation() != pCard.getNation()) {
+        } else if(table.getNation() != pCard.getNation() && table2.getNation() != pCard.getNation() && table3.getNation() != pCard.getNation()) {
             return ErrType.TABLE_MISMATCH;
+        } else if(pMode == SpecialMode.FIRSTCARD) {
+        	return ErrType.NONE;
+        } else if(table.isEmpty() && table2.isEmpty() && table3.isEmpty()) {
+            return ErrType.ALONE;
         }
-        if(pMode != SpecialMode.FIRSTCARD) {
-            if(table.isEmpty() && table2.isEmpty() && table3.isEmpty()) {
-                return ErrType.ALONE;
-            }
-            if(table.getSexMajorityCount(pCard.getSex()) > 0 || table2.getSexMajorityCount(pCard.getSex()) > 0 || table3.getSexMajorityCount(pCard.getSex()) > 0) {
-                return ErrType.SEX_INEQUALITY;
-            }
+        ErrType[] canSit = {table.canSit(pCard.getSex()), table2.canSit(pCard.getSex()), table3.canSit(pCard.getSex())};
+        boolean onlyInCircle = false;
+        for(int i = 0; i <= 2; i++) {
+        	if(canSit[i] == ErrType.SEX_INEQUALITY) return ErrType.SEX_INEQUALITY;
+        	if(canSit[i] == ErrType.ONLY_IN_CIRCLE) {
+        		if(!onlyInCircle) 
+        			onlyInCircle = true;
+        		else
+        			return ErrType.SEX_INEQUALITY;
+        	}
         }
+        if(onlyInCircle) return ErrType.ONLY_IN_CIRCLE;
         return ErrType.NONE;
     }
 

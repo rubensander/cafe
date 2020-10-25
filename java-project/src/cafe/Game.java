@@ -13,12 +13,12 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class Game {
-	Table[] tables = new Table[5];
-	Seat[] seats = new Seat[12];
-	Stack<Card> stack;
-	Stack<Nation> tableStack;
-	Player curPlayer;
-	SpecialMode specialMode;
+	private Table[] tables = new Table[5];
+	private Seat[] seats = new Seat[12];
+	private Stack<Card> stack;
+	private Stack<Nation> tableStack;
+	public Player curPlayer;
+	public SpecialMode specialMode;
 	public static int cMaxCards = 12;
 
 	ServerSocket webSocket;
@@ -134,7 +134,7 @@ public class Game {
 					(seats[i].getSex() != null ? seats[i].getSex().toString() : "x"));
 		}
 		try {
-			broadcast("BOARD", new JSONObject().put("tables", jsonTables).put("seats", jsonSeats));
+			broadcast("BOARD", new JSONObject().put("tables", jsonTables).put("seats", jsonSeats).put("specialMode", specialMode));
 		}  catch(JSONException e) {
 			System.out.println(e.getMessage());
 		}

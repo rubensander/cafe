@@ -23,10 +23,8 @@ public class Seat {
             return ErrType.TABLE_MISMATCH;
         } else if(pMode != SpecialMode.FIRSTCARD && table.isEmpty()) {
             return ErrType.ALONE;
-        } else if(table.getSexMajorityCount(pCard.getSex()) > 0) {
-            return ErrType.SEX_INEQUALITY;
         }
-        return ErrType.NONE;
+        return table.canSit(pCard.getSex());
     }
 
     public Card empty() {

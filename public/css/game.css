@@ -21,7 +21,7 @@ img {
   padding: 0.2vh;
 }
 
-img:hover {
+#drawpile:hover, .handcard:hover {
   border-color: #CCCCCC;
   border-style: dashed;
   cursor: pointer;
@@ -59,4 +59,8 @@ td, tr {
 
 #btnEndTurn {
   /*display: none;*/
+}
+
+#btnTakeBackCard {
+  display: none;
 }

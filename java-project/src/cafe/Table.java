@@ -27,17 +27,21 @@ public class Table {
 //         return count;
 //     }
 
-    public int getSexMajorityCount(Sex pSex) {
-        int count = 0;
+    public ErrType canSit(Sex pSex) {
+        int countTaken = 0;
+        int countBalance = 0;
         for(Seat seat : seats) {
             if(seat.isTaken()) {
+            	countTaken++;
                 if(seat.getSex() == pSex)
-                    count++;
+                	countBalance++;
                 else
-                    count--;
+                	countBalance--;
             }
         }
-        return count;
+        if(countBalance <= 0) return ErrType.NONE;
+        if(countTaken == countBalance) return ErrType.ONLY_IN_CIRCLE;
+        return ErrType.SEX_INEQUALITY;
     }
 
     public Nation getNation() {

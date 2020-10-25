@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Scanner;
+import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,9 +24,9 @@ public class Player implements Runnable {
 	private ArrayList<Card> cards;
 	private Player next;
 	private String name;
-	private int selectedCard;
 	private int status;
 	private Game game;
+	private Stack<Seat> laidUnderReserve;
 	private Socket socket;
 	private InputStream in;
 	private OutputStream out;
@@ -35,8 +36,8 @@ public class Player implements Runnable {
 
 		next = this;
 		name = "";
-		selectedCard = -1;
 		status = -1;
+		laidUnderReserve = new Stack<Seat>();
 
 		socket = pSocket;
 		
@@ -94,8 +95,7 @@ public class Player implements Runnable {
 			while(true) {
 				try {
 					if(msgObj.get("status").equals("SET_CARD")) {
-						selectCard(msgObj.getInt("cardNr"));
-						ErrType err = placeCardAt(game.getSeatByNr(msgObj.getInt("seatNr")));
+						ErrType err = placeCardAt(game.getSeatByNr(msgObj.getInt("seatNr")), msgObj.getInt("cardNr"));
 						if(err == ErrType.NONE)
 							game.broadcastBoard();
 						else 
@@ -128,8 +128,18 @@ public class Player implements Runnable {
 						ErrType err = endTurn();
 						if(err == ErrType.NONE)
 							game.broadcastBoard();
-						else 
+						else
 							sendErr(err.toString());
+					}
+					else if(msgObj.get("status").equals("TAKE_BACK_CARD")) {
+						Card takenBackCard = takeBackCard();
+						if(takenBackCard != null) {
+							game.broadcastBoard();
+							Card card = cards.get(cards.size() - 1);
+							JSONObject resObj = new JSONObject().put("status", "DRAWN");
+							resObj.put("card", card.getNation().toString() + "_" + card.getSex().toString());
+							send(resObj.toString());
+						}
 					}
 					else {
 						System.out.println(name + ": Unknown message: " + msgObj.toString());
@@ -141,8 +151,6 @@ public class Player implements Runnable {
 			}
 		} catch(JSONException e) {
 			System.out.println(name + ": JSON error. " + e.getMessage());
-		//} catch(ProtocolException e) {
-		//	System.out.println(name + ": Error with protocol. " + e.getMessage());
 		} catch(IOException e) {
 			System.out.println(name + ": IO receiving Error. " + e.getMessage());
 		} catch(WebsocketException e) {
@@ -206,12 +214,29 @@ public class Player implements Runnable {
 		return false;
 	}
 
-	class ProtocolException extends Exception {
-		private static final long serialVersionUID = 1L;
-
-		public ProtocolException(String message) {
-			super(message);
+	private JSONObject parseNextMessage() throws IOException, WebsocketException {
+		int status = in.read();
+		if(status == 129 || status == 136) {
+			int length = in.read() - 128; // subtract "mask" bit
+	
+			if(length < 126) {
+				byte[] decoded = new byte[length];
+				byte[] key = new byte[] { (byte) in.read(), (byte) in.read(), (byte) in.read(), (byte) in.read() };
+				for(byte i = 0; i < length; i++) {
+					decoded[i] = (byte) (in.read() ^ key[i & 0x3]);
+				}
+	
+				if(status == 136)
+					throw new WebsocketException(status, length, decoded);
+				
+				try {
+					return new JSONObject(new String(decoded));
+				} catch(JSONException ex) {
+					return new JSONObject();
+				}
+			}
 		}
+		throw new WebsocketException(status, 0, new byte[0]);
 	}
 
 	public void send(String message) throws IOException {
@@ -252,6 +277,7 @@ public class Player implements Runnable {
 				jsonCards.put(card.getNation().toString() + "_" + card.getSex().toString());
 			}
 			data.put("cards", jsonCards);
+			data.put("canEndTurn", status > 0);
 			String message = data.toString();
 
 			send(message);
@@ -272,31 +298,6 @@ public class Player implements Runnable {
 		}
 	}
 
-	private JSONObject parseNextMessage() throws IOException, WebsocketException {
-		int status = in.read();
-		if(status == 129 || status == 136) {
-			int length = in.read() - 128; // subtract "mask" bit
-
-			if(length < 126) {
-				byte[] decoded = new byte[length];
-				byte[] key = new byte[] { (byte) in.read(), (byte) in.read(), (byte) in.read(), (byte) in.read() };
-				for(byte i = 0; i < length; i++) {
-					decoded[i] = (byte) (in.read() ^ key[i & 0x3]);
-				}
-
-				if(status == 136)
-					throw new WebsocketException(status, length, decoded);
-				
-				try {
-					return new JSONObject(new String(decoded));
-				} catch(JSONException ex) {
-					return new JSONObject();
-				}
-			}
-		}
-		throw new WebsocketException(status, 0, new byte[0]);
-	}
-
 	public class WebsocketException extends Exception {
 		private static final long serialVersionUID = 1L;
 		public boolean fin;
@@ -312,79 +313,20 @@ public class Player implements Runnable {
 		}
 	}
 
-	public void setNext(Player pNext) {
-		next = pNext;
+	public String getName() {
+		return name;
 	}
 
 	public Player getNext() {
 		return next;
 	}
 
-	private ErrType drawCard() {
-		if(status == -1) 
-			return ErrType.SB_ELSES_TURN;
-		if(cards.size() >= 12)
-			return ErrType.TOO_MANY_HANDCARDS;
-		
-		cards.add(game.popCard());
-		status = 1;
-		endTurn();
-		return ErrType.NONE;
-	}
-	
 	public int getPoints() {
 		return points;
 	}
 
-	public String getName() {
-		return name;
-	}
-
-	private void selectCard(int index) {
-		if(index >= 0 && index < cards.size()) {
-			selectedCard = index;
-		}
-	}
-
-	private void layDownCard() {
-		if(selectedCard != -1) {
-			cards.remove(selectedCard);
-			points -= 2;
-			endTurn();
-		}
-	}
-
-	private ErrType placeCardAt(Seat pSeat) {
-		if(status == -1)
-			return ErrType.SB_ELSES_TURN;
-		
-		ErrType err = pSeat.isValidMove(cards.get(selectedCard), game.specialMode);
-		if(err == ErrType.NONE) {
-			pSeat.set(cards.get(selectedCard));
-			cards.remove(selectedCard);
-			selectedCard = -1;
-			status++;
-			points += pSeat.getPoints();
-			game.exchangeFullTables();
-			if(status == 3) endTurn();
-			return ErrType.NONE;
-		}
-		return err;
-	}
-
-	private boolean takeBackCard() {
-		if(game.specialMode == SpecialMode.SECONDCARD) {
-			status = 0;
-			for(Seat seat : game.seats) {
-				if(seat.isTaken()) {
-					cards.add(seat.empty());
-					break;
-				}
-			}
-			game.specialMode = SpecialMode.FIRSTCARD;
-			return true;
-		}
-		return false;
+	public void setNext(Player pNext) {
+		next = pNext;
 	}
 
 	public void beginTurn() {
@@ -397,11 +339,76 @@ public class Player implements Runnable {
 		}
 	}
 
+	private ErrType drawCard() {
+		if(status == -1) 
+			return ErrType.SB_ELSES_TURN;
+		if(status > 0) 
+			return ErrType.CARD_LAID;
+		if(cards.size() >= 12)
+			return ErrType.TOO_MANY_HANDCARDS;
+		
+		cards.add(game.popCard());
+		status = -1;
+		next.beginTurn();
+		return ErrType.NONE;
+	}
+
+	private void layDownCard(int cardNr) {
+		if(cardNr != -1) {
+			cards.remove(cardNr);
+			points -= 2;
+			endTurn();
+		}
+	}
+
+	private ErrType placeCardAt(Seat pSeat, int cardNr) {
+		if(status == -1)
+			return ErrType.SB_ELSES_TURN;
+		
+		ErrType err = pSeat.isValidMove(cards.get(cardNr), game.specialMode);
+		if(err == ErrType.ONLY_IN_CIRCLE)
+			game.specialMode = SpecialMode.CIRCLE;
+		if(err == ErrType.NONE || err == ErrType.ONLY_IN_CIRCLE) {
+			pSeat.set(cards.get(cardNr));
+			cards.remove(cardNr);
+			status++;
+			points += pSeat.getPoints();
+			game.exchangeFullTables();
+			if(game.specialMode == SpecialMode.SECONDCARD || game.specialMode == SpecialMode.CIRCLE)
+				laidUnderReserve.push(pSeat);
+			else
+				laidUnderReserve.clear();
+			if(status == 3) endTurn();
+			return ErrType.NONE;
+		}
+		return err;
+	}
+
+	private Card takeBackCard() {
+		Card cardTakenBack = null;
+		if(game.specialMode == SpecialMode.SECONDCARD) {
+			cardTakenBack = laidUnderReserve.pop().empty();
+			cards.add(cardTakenBack);
+			status--;
+			game.specialMode = SpecialMode.FIRSTCARD;
+		} else if(game.specialMode == SpecialMode.CIRCLE) {
+			cardTakenBack = laidUnderReserve.pop().empty();
+			cards.add(cardTakenBack);
+			status--;
+			if(laidUnderReserve.isEmpty()) {
+				game.specialMode = SpecialMode.NONE;
+			}
+		}
+		return cardTakenBack;
+	}
+
 	private ErrType endTurn() {
 		if(status == -1) 
 			return ErrType.SB_ELSES_TURN;
 		if(game.specialMode == SpecialMode.SECONDCARD)
 			return ErrType.ALONE;
+		if(game.specialMode == SpecialMode.CIRCLE)
+			return ErrType.INCOMPLETE_CIRCLE;
 		if(status == 0)
 			return ErrType.NO_CARD_LAID;
 		status = -1;

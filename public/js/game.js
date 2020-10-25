@@ -70,15 +70,23 @@ ws.onmessage = function(event) {
           document.getElementById("seat" + iSeat).src = "./img/" + msgObj.seats[iSeat] + ".svg";
         //}
       }
+      if(msgObj.specialMode == "SECONDCARD" || msgObj.specialMode == "CIRCLE") {
+        document.getElementById("btnEndTurn").style.display = "none";
+        document.getElementById("btnTakeBackCard").style.display = "inline-block";
+      } else {
+        document.getElementById("btnTakeBackCard").style.display = "none";
+      }
       break;
     case "HAND":
-      for(node of hand.childNodes) {
-        hand.removeChild(node);
+    // TODO
+      for(let i = hand.childElementCount - 1; i >= 0; i--) {
+        hand.removeChild(hand.childNodes[i]);
       }
-      let i = 0;
       for(card of msgObj.cards) {
         addHandcard(card);
       }
+      document.getElementById("btnEndTurn").style.display = msgObj.canEndTurn ? "inline-block" : "none";
+      break;
     case "VALID_MOVES":
       validMoves = msgObj.validMoves;
       break;
@@ -87,7 +95,7 @@ ws.onmessage = function(event) {
         name = msgObj.yourName;
       if(msgObj.player == name) {
         document.getElementById("whoseTurn").textContent = "– Du bist am Zug";
-        for(node of hand.childNodes) {
+          for(node of hand.childNodes) {
           node.draggable = true;
         }
       } else {
@@ -117,7 +125,7 @@ ws.onmessage = function(event) {
 ws.onclose = function(code, reason) {
     document.getElementById("websocketStatus").style.color = "#CC0000";
     document.getElementById("websocketStatus").textContent  = "Nicht verbunden";
-}
+};
 
 // drag and drop of cards
 
@@ -132,8 +140,11 @@ function drag(ev) {
 }
 
 function dragEnter(ev) {
-  if(validMoves[ev.target.id.slice(4)] == "NONE") {
+  validity = validMoves[ev.target.id.slice(4)];
+  if(validity == "NONE") {
     ev.target.style.border = "solid #00CC00";
+  } if(validity == "ONLY_IN_CIRCLE") {
+    ev.target.style.border = "solid #CCCC00";
   }
 }
 
@@ -150,7 +161,7 @@ function drop(ev) {
   var seatNr = ev.target.id.slice(4);
   var cardNr = ev.dataTransfer.getData("cardNr");
 
-  if(validMoves[seatNr] == "NONE") {
+  if(validMoves[seatNr] == "NONE" || validMoves[seatNr] == "ONLY_IN_CIRCLE") {
     ev.target.style.border = "";
     ev.target.src = ev.dataTransfer.getData("imgSrc");
     ws.send(JSON.stringify({ status:"SET_CARD", cardNr, seatNr }));
@@ -202,11 +213,15 @@ function drawCard() {
   ws.send(JSON.stringify({ status:"DRAW" }));
 }
 
+function takeBackCard() {
+  ws.send(JSON.stringify({ status:"TAKE_BACK_CARD" }));
+}
+
 function addHandcard(card) {
   var img = document.createElement("img");
   img.src = "./img/" + card + ".svg";
   img.ondragstart = drag;
-  img.draggable = false;
+  img.draggable = (document.getElementById("whoseTurn").textContent === "– Du bist am Zug");
   img.onclick = selectCard;
   img.className = "handcard";
   //img.style.left = document.getElementById("game").width + i++ / msgObj.cards.length * 100 + "%";
