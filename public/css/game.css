@@ -15,10 +15,12 @@ img {
   border-style: solid;
   border-color: #FFFFFF00;
   border-radius: 5px;
-  border-width: 0.5vh;
-  height: 13vh;
+  border-width: 5px;
+  height: 13.3vh;
+  height: calc(var(--vh, 1vh) * 13.3);
   margin: 0;
   padding: 0.2vh;
+  padding: calc(var(--vh, 1vh) * 0.2);;
 }
 
 #drawpile:hover, .handcard:hover {
@@ -38,7 +40,9 @@ td, tr {
 }
 
 #hand {
-  height: 14.4vh;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
 }
 
 .handcard {

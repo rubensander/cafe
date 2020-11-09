@@ -86,6 +86,7 @@ ws.onmessage = function(event) {
         addHandcard(card);
       }
       document.getElementById("btnEndTurn").style.display = msgObj.canEndTurn ? "inline-block" : "none";
+      document.getElementById("points").textContent = msgObj.points;
       break;
     case "VALID_MOVES":
       validMoves = msgObj.validMoves;
@@ -141,6 +142,13 @@ ws.onclose = function(code, reason) {
     document.getElementById("websocketStatus").textContent  = "Nicht verbunden";
 };
 
+ws.onerror = function(event) {
+  if(event.target.readyState == 3) {
+    document.getElementById("websocketStatus").style.color = "#CC0000";
+    document.getElementById("websocketStatus").textContent  = "Nicht verbunden";
+  }
+}
+
 // drag and drop of cards
 
 function drag(ev) {
@@ -156,14 +164,17 @@ function drag(ev) {
 function dragEnter(ev) {
   validity = validMoves[ev.target.id.slice(4)];
   if(validity == "NONE") {
-    ev.target.style.border = "solid #00CC00";
+    ev.target.style.borderColor = "#00CC00";
+    ev.target.style.borderStyle = "solid";
   } if(validity == "ONLY_IN_CIRCLE") {
-    ev.target.style.border = "solid #CCCC00";
+    ev.target.style.borderColor = "#CCCC00";
+    ev.target.style.borderStyle = "solid";
   }
 }
 
 function dragLeave(ev) {
-  ev.target.style.border = "";
+  ev.target.style.borderColor = "";
+  ev.target.style.borderStyle = "";
 }
 
 function allowDrop(ev) {
@@ -176,7 +187,8 @@ function drop(ev) {
   var cardNr = ev.dataTransfer.getData("cardNr");
 
   if(validMoves[seatNr] == "NONE" || validMoves[seatNr] == "ONLY_IN_CIRCLE") {
-    ev.target.style.border = "";
+    ev.target.style.borderColor = "";
+    ev.target.style.borderStyle = "";
     ev.target.src = ev.dataTransfer.getData("imgSrc");
     ws.send(JSON.stringify({ status:"SET_CARD", cardNr, seatNr }));
     hand.removeChild(hand.childNodes[cardNr]);
@@ -187,8 +199,10 @@ function drop(ev) {
 }
 
 function selectCard(ev) {
-  if(selectedCard > -1 && selectedCard < hand.childElementCount)
-    hand.childNodes[selectedCard].style.border = "";
+  if(selectedCard > -1 && selectedCard < hand.childElementCount) {
+    hand.childNodes[selectedCard].style.borderColor = "";
+    hand.childNodes[selectedCard].style.borderStyle = "";
+  }
 
   var newCard;
   for(newCard = 0; newCard < hand.childElementCount; newCard++) {
@@ -198,7 +212,8 @@ function selectCard(ev) {
     selectedCard = -1;
   } else {
     selectedCard = newCard;
-    ev.target.style.border = "solid #00CC00";
+    ev.target.style.borderColor = "#00CC00";
+    ev.target.style.borderStyle = "solid";
     ws.send(JSON.stringify({ status:"GET_VALID_MOVES", cardNr:newCard }));
   }
 }
@@ -207,8 +222,9 @@ function setIfSelected(ev) {
   ev.preventDefault();
   var seatNr = ev.target.id.slice(4);
 
-  if(validMoves[seatNr] == "NONE") {
-    ev.target.style.border = "";
+  if(validMoves[seatNr] == "NONE" || validMoves[seatNr] == "ONLY_IN_CIRCLE") {
+    ev.target.style.borderColor = "";
+    ev.target.style.borderStyle = "";
     ev.target.src = hand.childNodes[selectedCard].src;
     ws.send(JSON.stringify({ status:"SET_CARD", cardNr: selectedCard, seatNr }));
     hand.removeChild(hand.childNodes[selectedCard]);
@@ -241,3 +257,8 @@ function addHandcard(card) {
   //img.style.left = document.getElementById("game").width + i++ / msgObj.cards.length * 100 + "%";
   hand.appendChild(img);
 }
+
+// First we get the viewport height and we multiple it by 1% to get a value for a vh unit
+let vh = window.innerHeight * 0.01;
+// Then we set the value in the --vh custom property to the root of the document
+document.documentElement.style.setProperty('--vh', `${vh}px`);

@@ -287,6 +287,7 @@ public class Player implements Runnable {
 			}
 			data.put("cards", jsonCards);
 			data.put("canEndTurn", status > 0);
+			data.put("points", points);
 			String message = data.toString();
 
 			send(message);

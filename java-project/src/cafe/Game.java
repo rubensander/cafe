@@ -45,9 +45,10 @@ public class Game {
 					
 					if(isReconnection) 
 						new Thread(p).start();
-					else if(game.specialMode == SpecialMode.NOTSTARTED) // no match -> new player if game not started
+					else if(game.specialMode == SpecialMode.NOTSTARTED) { // no match -> new player if game not started
+						System.out.println("Connected to new player at " + socket.toString());
 						new Thread(new Player(game, socket)).start();
-					else
+					} else
 						System.out.println("Did not connect to " + socket.toString());
 				} catch(Exception e) {
 					if(game.webSocket.isClosed())
