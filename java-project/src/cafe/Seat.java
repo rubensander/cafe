@@ -22,9 +22,9 @@ public class Seat {
         } else if(table.getNation() != pCard.getNation()) {
             return ErrType.TABLE_MISMATCH;
         } else if(pMode != SpecialMode.FIRSTCARD && table.isEmpty()) {
-            return ErrType.ALONE;
+            return ErrType.ONLY_IN_CIRCLE;
         }
-        return table.canSit(pCard.getSex());
+        return table.canSit(pCard.getSex(), pMode);
     }
 
     public Card empty() {

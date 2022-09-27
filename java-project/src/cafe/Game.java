@@ -103,9 +103,9 @@ public class Game {
 		System.out.println("Websocket server started on port 2855.");
 	}
 
-	public void broadcast(String status, JSONObject data) {
+	public void broadcast(String msgType, JSONObject data) {
 		try {
-			data.put("status", status);
+			data.put("msgType", msgType);
 			String message = data.toString();
 
 			Player p = curPlayer;
@@ -118,7 +118,7 @@ public class Game {
 				p = p.getNext();
 			} while(p != curPlayer);
 		} catch(JSONException e) {
-			System.out.println("Broadcast failed: Could not add status to JSONObject. Status: " + status + ". Data: " + data.toString());
+			System.out.println("Broadcast failed: Could not add msgType to JSONObject. msgType: " + msgType + ". Data: " + data.toString());
 		}
 	}
 
@@ -147,11 +147,11 @@ public class Game {
 
 		try {
 			if(curPlayer == null) {
-				msgObj.put("enableStart", new Boolean(false));
+				msgObj.put("enableStart", Boolean.FALSE);
 			} else {
 				pSender.setNext(curPlayer.getNext());
 				curPlayer.setNext(pSender);
-				msgObj.put("enableStart", new Boolean(true));
+				msgObj.put("enableStart", Boolean.TRUE);
 			}
 			curPlayer = pSender;
 
@@ -190,6 +190,7 @@ public class Game {
 			return;
 		}
 		broadcast("STARTED", new JSONObject());
+		specialMode = SpecialMode.FIRSTCARD;
 
 		for(int i = 0; i < 5; i++) {
 			tables[i].setNation(tableStack.pop());
@@ -210,7 +211,6 @@ public class Game {
 		System.out.println("Game started");
 		curPlayer = curPlayer.getNext();
 		curPlayer.beginTurn();
-		specialMode = SpecialMode.FIRSTCARD;
 
 			//Printer.printPlayerWithIndex(curPlayer);
 			/*

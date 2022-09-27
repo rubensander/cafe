@@ -23,9 +23,11 @@ public class CenterSeat extends Seat {
         } else if(table.isEmpty() && table2.isEmpty() && table3.isEmpty()) {
             return ErrType.ALONE;
         }
-        ErrType[] canSit = {table.canSit(pCard.getSex()), table2.canSit(pCard.getSex()), table3.canSit(pCard.getSex())};
+        ErrType[] canSit = {table.canSit(pCard.getSex(), pMode), table2.canSit(pCard.getSex(), pMode), table3.canSit(pCard.getSex(), pMode)};
         boolean onlyInCircle = false;
+        boolean incompleteCircle = true;
         for(int i = 0; i <= 2; i++) {
+        	if(canSit[i] != ErrType.INCOMPLETE_CIRCLE) incompleteCircle = false;
         	if(canSit[i] == ErrType.SEX_INEQUALITY) return ErrType.SEX_INEQUALITY;
         	if(canSit[i] == ErrType.ONLY_IN_CIRCLE) {
         		if(!onlyInCircle) 
@@ -34,6 +36,7 @@ public class CenterSeat extends Seat {
         			return ErrType.SEX_INEQUALITY;
         	}
         }
+        if(incompleteCircle) return ErrType.INCOMPLETE_CIRCLE;
         if(onlyInCircle) return ErrType.ONLY_IN_CIRCLE;
         return ErrType.NONE;
     }

@@ -75,9 +75,9 @@ public class Player implements Runnable {
 			
 			// if player was never before connected: get name
 			if(name.isEmpty()) {
-				if(msgObj.get("status").equals("JOIN")) {
+				if(msgObj.get("msgType").equals("JOIN")) {
 					while(msgObj.getString("name").isEmpty()) {
-						send(new JSONObject().put("status", "ERR").put("message", "Der Name darf nicht leer sein.").toString());
+						send(new JSONObject().put("msgType", "ERR").put("message", "Der Name darf nicht leer sein.").toString());
 						msgObj = parseNextMessage();
 					}
 					name = msgObj.getString("name");
@@ -85,7 +85,7 @@ public class Player implements Runnable {
 				}
 				
 				msgObj = parseNextMessage();
-				if(msgObj.get("status").equals("START")) {
+				if(msgObj.get("msgType").equals("START")) {
 					if(game.specialMode == SpecialMode.NOTSTARTED)
 						game.start();
 					msgObj = parseNextMessage();
@@ -94,12 +94,10 @@ public class Player implements Runnable {
 			
 			while(true) {
 				try {
-					if(msgObj.get("status").equals("SET_CARD")) {
+					if(msgObj.get("msgType").equals("SET_CARD")) {
 						ErrType err = placeCardAt(game.getSeatByNr(msgObj.getInt("seatNr")), msgObj.getInt("cardNr"));
 						if(err == ErrType.NONE) {
-							JSONObject resObj = new JSONObject().put("status", "POINTS");
-							resObj.put("points", points);
-							send(resObj.toString());
+							sendInfo();
 							if(game.specialMode == SpecialMode.ENDED)
 								break;
 							else
@@ -108,47 +106,43 @@ public class Player implements Runnable {
 						else 
 							sendErr(game.curPlayer.getName() + " ist am Zug!");
 					}
-					else if(msgObj.get("status").equals("GET_VALID_MOVES")) {
+					else if(msgObj.get("msgType").equals("GET_VALID_MOVES")) {
 						int cardNr = msgObj.getInt("cardNr");
 						JSONArray jsonValidMoves = new JSONArray();
-						for(int iSeat = 0; iSeat < 12; iSeat++) {
-							if(status == -1)
-								jsonValidMoves.put(ErrType.SB_ELSES_TURN);
-							else
-								jsonValidMoves.put(game.getSeatByNr(iSeat).isValidMove(cards.get(cardNr), game.specialMode));
-						}
-						JSONObject resObj = new JSONObject().put("status", "VALID_MOVES");
+						for(int iSeat = 0; iSeat < 12; iSeat++)
+							jsonValidMoves.put(isValidMove(game.getSeatByNr(iSeat), cards.get(cardNr)));
+						JSONObject resObj = new JSONObject().put("msgType", "VALID_MOVES");
 						resObj.put("validMoves", jsonValidMoves);
 						send(resObj.toString());
 					}
-					else if(msgObj.get("status").equals("DRAW")) { 
+					else if(msgObj.get("msgType").equals("DRAW")) { 
 						ErrType err = drawCard();
 						if(err == ErrType.NONE) {
 							Card card = cards.get(cards.size() - 1);
-							JSONObject resObj = new JSONObject().put("status", "DRAWN");
+							JSONObject resObj = new JSONObject().put("msgType", "DRAWN");
 							resObj.put("card", card.getNation().toString() + "_" + card.getSex().toString());
 							send(resObj.toString());
 						} else
 							sendErr(err.toString());
 					}
-					else if(msgObj.get("status").equals("END_TURN")) {
+					else if(msgObj.get("msgType").equals("END_TURN")) {
 						ErrType err = endTurn();
 						if(err == ErrType.NONE)
 							game.broadcastBoard();
 						else
 							sendErr(err.toString());
 					}
-					else if(msgObj.get("status").equals("TAKE_BACK_CARD")) {
+					else if(msgObj.get("msgType").equals("TAKE_BACK_CARD")) {
 						Card takenBackCard = takeBackCard();
 						if(takenBackCard != null) {
 							game.broadcastBoard();
-							Card card = cards.get(cards.size() - 1);
-							JSONObject resObj = new JSONObject().put("status", "DRAWN");
-							resObj.put("card", card.getNation().toString() + "_" + card.getSex().toString());
+							JSONObject resObj = new JSONObject().put("msgType", "DRAWN");
+							resObj.put("card", takenBackCard.getNation().toString() + "_" + takenBackCard.getSex().toString());
 							send(resObj.toString());
+							sendInfo();
 						}
 					}
-					else if(msgObj.get("status").equals("GAME_ENDED"))
+					else if(msgObj.get("msgType").equals("GAME_ENDED"))
 						break;
 					else {
 						System.out.println(name + ": Unknown message: " + msgObj.toString());
@@ -191,9 +185,9 @@ public class Player implements Runnable {
 						JSONObject msgObj = new JSONObject();
 						
 						if(next == this) 
-							msgObj.put("enableStart", new Boolean(false));
+							msgObj.put("enableStart", Boolean.FALSE);
 						else
-							msgObj.put("enableStart", new Boolean(true));
+							msgObj.put("enableStart", Boolean.TRUE);
 						
 						// get player list (in correct order)
 						JSONArray players = new JSONArray();
@@ -203,16 +197,16 @@ public class Player implements Runnable {
 							p = p.getNext();
 						} while(p != game.curPlayer.getNext());
 						msgObj.put("players", players);
-						msgObj.put("status", "NEW_PLAYER");
+						msgObj.put("msgType", "NEW_PLAYER");
 						send(msgObj.toString());
 					} catch(JSONException e) {
 						
 					}
 				} else {
-					send("{\"status\":\"STARTED\"}");
+					send("{\"msgType\":\"STARTED\"}");
 					sendHand();
 					game.broadcastBoard();
-					send("{\"status\":\"TURN_OF\", \"player\":\"" + game.curPlayer.getName() + "\", \"yourName\":\"" + name + "\"}");
+					send("{\"msgType\":\"TURN_OF\", \"player\":\"" + game.curPlayer.getName() + "\", \"yourName\":\"" + name + "\"}");
 				}
 				return true;
 				
@@ -280,7 +274,7 @@ public class Player implements Runnable {
 	public void sendHand() throws IOException {
 		try {
 			JSONObject data = new JSONObject();
-			data.put("status", "HAND");
+			data.put("msgType", "HAND");
 			JSONArray jsonCards = new JSONArray();
 			for(Card card : cards) {
 				jsonCards.put(card.getNation().toString() + "_" + card.getSex().toString());
@@ -289,17 +283,31 @@ public class Player implements Runnable {
 			data.put("canEndTurn", status > 0);
 			data.put("points", points);
 			String message = data.toString();
-
 			send(message);
+			
+			sendInfo();
 		} catch(JSONException e) {
 			System.out.println(name + ": JSON Error while sending hand. " + e.getMessage());
 		}
 	}
 	
+	private void sendInfo() throws IOException, JSONException {
+		JSONObject data = new JSONObject().put("msgType", "INFO");
+		data.put("points", points);
+		data.put("canTakeBackCard", false);
+		data.put("canEndTurn", false);
+		if(!laidUnderReserve.empty())
+			data.put("canTakeBackCard", true);
+		else if(status > 0 && game.specialMode != SpecialMode.ENDED)
+			data.put("canEndTurn", true);
+		String message = data.toString();
+		send(message);
+	}
+	
 	private void sendErr(String message) throws IOException {
 		try {
 			JSONObject errObj = new JSONObject();
-			errObj.put("status", "ERR");
+			errObj.put("msgType", "ERR");
 			errObj.put("message", message);
 			
 			send(errObj.toString());
@@ -370,27 +378,46 @@ public class Player implements Runnable {
 			endTurn();
 		}
 	}
-
-	private ErrType placeCardAt(Seat pSeat, int cardNr) {
+	
+	private ErrType isValidMove(Seat pSeat, Card pCard) {
 		if(status == -1)
 			return ErrType.SB_ELSES_TURN;
+		else if(status == 3 && game.specialMode != SpecialMode.CIRCLE)
+			return ErrType.MAX_CARDS_LAID;
 		
-		ErrType err = pSeat.isValidMove(cards.get(cardNr), game.specialMode);
-		if(err == ErrType.ONLY_IN_CIRCLE)
+		ErrType validMove = pSeat.isValidMove(pCard, game.specialMode);
+		if(status > 0 && validMove == ErrType.ONLY_IN_CIRCLE && game.specialMode != SpecialMode.CIRCLE)
+			return ErrType.SEX_INEQUALITY;
+		return validMove;
+	}
+
+	private ErrType placeCardAt(Seat pSeat, int cardNr) {
+		ErrType err = isValidMove(pSeat, cards.get(cardNr));
+		
+		if(err == ErrType.ONLY_IN_CIRCLE && game.specialMode != SpecialMode.CIRCLE) {
 			game.specialMode = SpecialMode.CIRCLE;
+			status--;
+		}
 		if(err == ErrType.NONE || err == ErrType.ONLY_IN_CIRCLE) {
 			pSeat.set(cards.get(cardNr));
 			cards.remove(cardNr);
 			status++;
 			points += pSeat.getPoints();
-			game.exchangeFullTables();
-			if(game.specialMode == SpecialMode.SECONDCARD || game.specialMode == SpecialMode.CIRCLE)
+			if (game.specialMode == SpecialMode.FIRSTCARD) {
 				laidUnderReserve.push(pSeat);
-			else if(game.specialMode == SpecialMode.ENDED)
-				return ErrType.NONE;
-			else
+				game.specialMode = SpecialMode.SECONDCARD;
+			} else if(game.specialMode == SpecialMode.CIRCLE && status < 4) {
+				laidUnderReserve.push(pSeat);
+			} else {
+				game.specialMode = SpecialMode.NONE;
+				game.exchangeFullTables();
+				if(game.specialMode == SpecialMode.ENDED)
+					return ErrType.NONE;
+				//if(game.specialMode != SpecialMode.CIRCLE)
 				laidUnderReserve.clear();
-			if(status == 3) endTurn();
+				if(status >= 3)
+					endTurn();
+			}
 			return ErrType.NONE;
 		}
 		return err;

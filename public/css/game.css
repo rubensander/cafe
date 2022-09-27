@@ -62,7 +62,11 @@ td, tr {
 }
 
 #btnEndTurn {
-  /*display: none;*/
+  display: none;
+}
+
+#btnTakeBackCard {
+  display: none;
 }
 
 #btnTakeBackCard {
