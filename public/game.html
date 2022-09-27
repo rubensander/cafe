@@ -11,7 +11,7 @@
 </head>
 <body>
   <div class="divText">
-    <span id="websocketStatus">Nicht verbunden</span>
+    <span id="websocketStatus">Verbinden...</span>
     <span id="whoseTurn"></span>
     <span id="error"></span>
   </div>
@@ -39,7 +39,10 @@
         <td><img class="seat" src="./img/XX_x.svg" alt="Seat 2" id="seat2" draggable="false"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
         <td></td>
         <td><img class="seat" src="./img/XX_x.svg" alt="Seat 4" id="seat4" draggable="false"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
-        <td><button class="smallButton" id="btnEndTurn" onclick="endTurn()">&#10004;</button></td>
+        <td>
+          <button class="smallButton" id="btnEndTurn" onclick="endTurn()">&#10004;</button>
+          <button class="smallButton" id="btnTakeBackCard" onclick="takeBackCard()">&#8678;</button>
+        </td>
       </tr>
       <tr>
         <td><img class="seat" src="./img/XX_x.svg" alt="Seat 1" id="seat1" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
@@ -63,7 +66,7 @@
         <td><img class="seat" src="./img/XX_x.svg" alt="Seat 7" id="seat7" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
       </tr>
       <tr>
-        <td></td>
+        <td><div id="points">0</div><br>Punkte</td>
         <td><img class="seat" src="./img/XX_x.svg" alt="Seat 10" id="seat10" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
         <td></td>
         <td><img class="seat" src="./img/XX_x.svg" alt="Seat 8" id="seat8" draggable="false" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
@@ -71,8 +74,7 @@
       </tr>
     </table>
   </div>
-  <div id="hand">
-  </div>
+  <div id="hand"></div>
 
   <script src="./js/game.js" charset="utf-8"></script>
 </body>

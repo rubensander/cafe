@@ -27,17 +27,32 @@ public class Table {
 //         return count;
 //     }
 
-    public int getSexMajorityCount(Sex pSex) {
-        int count = 0;
+    public ErrType canSit(Sex pSex, SpecialMode pMode) {
+        int countTaken = 0;
+        int countBalance = 0;
         for(Seat seat : seats) {
             if(seat.isTaken()) {
+            	countTaken++;
                 if(seat.getSex() == pSex)
-                    count++;
+                	countBalance++;
                 else
-                    count--;
+                	countBalance--;
             }
         }
-        return count;
+        if(countTaken > 0) {
+        	if(countTaken == countBalance) 
+        		return ErrType.ONLY_IN_CIRCLE; 
+        	else 
+        		return ErrType.SEX_INEQUALITY;
+        }
+        return ErrType.NONE;
+        /*
+        if(countBalance <= 0 && pMode == SpecialMode.CIRCLE) return ErrType.INCOMPLETE_CIRCLE;
+        if(countBalance <= 0) return ErrType.NONE;
+        if(countTaken == 1 && pMode == SpecialMode.CIRCLE) return ErrType.SEX_INEQUALITY;
+        if(countTaken == countBalance) return ErrType.ONLY_IN_CIRCLE;
+        return ErrType.SEX_INEQUALITY;
+        */
     }
 
     public Nation getNation() {
@@ -73,16 +88,23 @@ public class Table {
         int points = 0;
         boolean oneNation = true;
 
+        int countBalance = 0;
         for(Seat seat : seats) {
             if(seat.isTaken()) {
                 points++;
                 if(seat.getNation() != nation)
                     oneNation = false;
+                if(seat.getSex() == Sex.f) countBalance++; else countBalance--;
             }
         }
+        countBalance = Math.abs(countBalance);
 
         if(points == 1)
             return 0;
+        else if(countBalance == 4) // is complete circle
+        	return 40;
+        else if(countBalance > 1) // else: is incomplete circle
+        	return 0;
         else if(oneNation)
             return 2*points;
         else

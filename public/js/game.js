@@ -16,7 +16,7 @@ function joinGame() {
   } else if(name == "") {
     console.log("Name must not be empty");
   } else {
-    ws.send(JSON.stringify({ status:"JOIN", name }));
+    ws.send(JSON.stringify({ msgType:"JOIN", name }));
   }
 }
 
@@ -31,7 +31,7 @@ function addPlayer() {
 }
 
 function startGame() {
-  ws.send(JSON.stringify({ status:"START" }));
+  ws.send(JSON.stringify({ msgType:"START" }));
 }
 
 // websocket callback functions
@@ -44,7 +44,7 @@ ws.onopen = function() {
 ws.onmessage = function(event) {
   var msgObj = JSON.parse(event.data);
   console.log(msgObj);
-  switch(msgObj.status) {
+  switch(msgObj.msgType) {
     case "NEW_PLAYER":
       if(msgObj.enableStart) {
         document.getElementById("btnStartGame").style.display = "inline-block";
@@ -66,19 +66,23 @@ ws.onmessage = function(event) {
          document.getElementById("table" + iTable).src = "./img/" + msgObj.tables[iTable] + ".svg";
       }
       for(let iSeat = 0; iSeat < 12; iSeat++) {
-        //if(state.seats[iSeat].card) {
-          document.getElementById("seat" + iSeat).src = "./img/" + msgObj.seats[iSeat] + ".svg";
-        //}
+        seat = document.getElementById("seat" + iSeat);
+        seat.src = "./img/" + msgObj.seats[iSeat] + ".svg";
+        if(msgObj.seats[iSeat] == "XX_x") {
+          seat.style.borderColor = "";
+          seat.style.borderStyle = "";
+        }
       }
       break;
     case "HAND":
-      for(node of hand.childNodes) {
-        hand.removeChild(node);
+    // TODO
+      for(let i = hand.childElementCount - 1; i >= 0; i--) {
+        hand.removeChild(hand.childNodes[i]);
       }
-      let i = 0;
       for(card of msgObj.cards) {
         addHandcard(card);
       }
+      break;
     case "VALID_MOVES":
       validMoves = msgObj.validMoves;
       break;
@@ -87,7 +91,7 @@ ws.onmessage = function(event) {
         name = msgObj.yourName;
       if(msgObj.player == name) {
         document.getElementById("whoseTurn").textContent = "– Du bist am Zug";
-        for(node of hand.childNodes) {
+          for(node of hand.childNodes) {
           node.draggable = true;
         }
       } else {
@@ -97,6 +101,23 @@ ws.onmessage = function(event) {
       break;
     case "DRAWN":
       addHandcard(msgObj.card);
+      setTimeout(function () { document.getElementById("hand").scrollLeft = 5000; }, 100);
+      break;
+    case "INFO":
+      document.getElementById("points").textContent = msgObj.points;
+      document.getElementById("btnEndTurn").style.display = msgObj.canEndTurn ? "inline-block" : "none";
+      document.getElementById("btnTakeBackCard").style.display = msgObj.canTakeBackCard ? "inline-block" : "none";
+      break;
+    case "END":
+      if(document.getElementById("whoseTurn").textContent === "– Du bist am Zug") {
+        wsEnd = new WebSocket("ws://" + location.host.slice(0,-1) + "5");
+        setTimeout(function() {
+          ws.close();
+        }, 1000);
+      }
+      document.getElementById("whoseTurn").textContent = msgObj.winners + " hat gewonnen!";
+      ws.send(JSON.stringify({ msgType:"GAME_ENDED" }));
+      document.getElementById("websocketStatus").style.display = "none";
       break;
     case "ERR":
       document.getElementById("websocketStatus").style.display = "none";
@@ -117,6 +138,13 @@ ws.onmessage = function(event) {
 ws.onclose = function(code, reason) {
     document.getElementById("websocketStatus").style.color = "#CC0000";
     document.getElementById("websocketStatus").textContent  = "Nicht verbunden";
+};
+
+ws.onerror = function(event) {
+  if(event.target.readyState == 3) {
+    document.getElementById("websocketStatus").style.color = "#CC0000";
+    document.getElementById("websocketStatus").textContent  = "Nicht verbunden";
+  }
 }
 
 // drag and drop of cards
@@ -128,17 +156,23 @@ function drag(ev) {
      if(hand.childNodes[cardNr] == ev.target) break;
    }
    ev.dataTransfer.setData("cardNr", cardNr);
-   ws.send(JSON.stringify({ status:"GET_VALID_MOVES", cardNr }));
+   ws.send(JSON.stringify({ msgType:"GET_VALID_MOVES", cardNr }));
 }
 
 function dragEnter(ev) {
-  if(validMoves[ev.target.id.slice(4)] == "NONE") {
-    ev.target.style.border = "solid #00CC00";
+  validity = validMoves[ev.target.id.slice(4)];
+  if(validity == "NONE") {
+    ev.target.style.borderColor = "#00CC00";
+    ev.target.style.borderStyle = "solid";
+  } if(validity == "ONLY_IN_CIRCLE") {
+    ev.target.style.borderColor = "#CCCC00";
+    ev.target.style.borderStyle = "solid";
   }
 }
 
 function dragLeave(ev) {
-  ev.target.style.border = "";
+  ev.target.style.borderColor = "";
+  ev.target.style.borderStyle = "";
 }
 
 function allowDrop(ev) {
@@ -146,24 +180,15 @@ function allowDrop(ev) {
 }
 
 function drop(ev) {
-  ev.preventDefault();
-  var seatNr = ev.target.id.slice(4);
-  var cardNr = ev.dataTransfer.getData("cardNr");
-
-  if(validMoves[seatNr] == "NONE") {
-    ev.target.style.border = "";
-    ev.target.src = ev.dataTransfer.getData("imgSrc");
-    ws.send(JSON.stringify({ status:"SET_CARD", cardNr, seatNr }));
-    hand.removeChild(hand.childNodes[cardNr]);
-    document.getElementById("btnEndTurn").style.display = "inline-block";
-  } else {
-    console.log("This is not a valid move: " + validMoves[seatNr]);
-  }
+  selectedCard = ev.dataTransfer.getData("cardNr");
+  setIfSelected(ev);
 }
 
 function selectCard(ev) {
-  if(selectedCard > -1 && selectedCard < hand.childElementCount)
-    hand.childNodes[selectedCard].style.border = "";
+  if(selectedCard > -1 && selectedCard < hand.childElementCount) {
+    hand.childNodes[selectedCard].style.borderColor = "";
+    hand.childNodes[selectedCard].style.borderStyle = "";
+  }
 
   var newCard;
   for(newCard = 0; newCard < hand.childElementCount; newCard++) {
@@ -173,8 +198,9 @@ function selectCard(ev) {
     selectedCard = -1;
   } else {
     selectedCard = newCard;
-    ev.target.style.border = "solid #00CC00";
-    ws.send(JSON.stringify({ status:"GET_VALID_MOVES", cardNr:newCard }));
+    ev.target.style.borderColor = "#00CC00";
+    ev.target.style.borderStyle = "solid";
+    ws.send(JSON.stringify({ msgType:"GET_VALID_MOVES", cardNr:newCard }));
   }
 }
 
@@ -183,32 +209,45 @@ function setIfSelected(ev) {
   var seatNr = ev.target.id.slice(4);
 
   if(validMoves[seatNr] == "NONE") {
-    ev.target.style.border = "";
-    ev.target.src = hand.childNodes[selectedCard].src;
-    ws.send(JSON.stringify({ status:"SET_CARD", cardNr: selectedCard, seatNr }));
-    hand.removeChild(hand.childNodes[selectedCard]);
-    document.getElementById("btnEndTurn").style.display = "inline-block";
-    selectedCard = -1;
+    ev.target.style.borderColor = "";
+    ev.target.style.borderStyle = "";
+  } else if(validMoves[seatNr] == "ONLY_IN_CIRCLE") {
+    ev.target.style.borderColor = "#CCCC00";
+    ev.target.style.borderStyle = "solid";
   } else {
     console.log("This is not a valid move: " + validMoves[seatNr]);
+    return;
   }
+  ev.target.src = hand.childNodes[selectedCard].src;
+  ws.send(JSON.stringify({ msgType:"SET_CARD", cardNr: selectedCard, seatNr }));
+  hand.removeChild(hand.childNodes[selectedCard]);
+  selectedCard = -1;
 }
 
 function endTurn() {
-   ws.send(JSON.stringify({ status:"END_TURN" }));
+   ws.send(JSON.stringify({ msgType:"END_TURN" }));
 }
 
 function drawCard() {
-  ws.send(JSON.stringify({ status:"DRAW" }));
+  ws.send(JSON.stringify({ msgType:"DRAW" }));
+}
+
+function takeBackCard() {
+  ws.send(JSON.stringify({ msgType:"TAKE_BACK_CARD" }));
 }
 
 function addHandcard(card) {
   var img = document.createElement("img");
   img.src = "./img/" + card + ".svg";
   img.ondragstart = drag;
-  img.draggable = false;
+  img.draggable = (document.getElementById("whoseTurn").textContent === "– Du bist am Zug");
   img.onclick = selectCard;
   img.className = "handcard";
   //img.style.left = document.getElementById("game").width + i++ / msgObj.cards.length * 100 + "%";
   hand.appendChild(img);
 }
+
+// First we get the viewport height and we multiple it by 1% to get a value for a vh unit
+let vh = window.innerHeight * 0.01;
+// Then we set the value in the --vh custom property to the root of the document
+document.documentElement.style.setProperty('--vh', `${vh}px`);

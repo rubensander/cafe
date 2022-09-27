@@ -13,12 +13,12 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class Game {
-	Table[] tables = new Table[5];
-	Seat[] seats = new Seat[12];
-	Stack<Card> stack;
-	Stack<Nation> tableStack;
-	Player curPlayer;
-	SpecialMode specialMode;
+	private Table[] tables = new Table[5];
+	private Seat[] seats = new Seat[12];
+	private Stack<Card> stack;
+	private Stack<Nation> tableStack;
+	public Player curPlayer;
+	public SpecialMode specialMode;
 	public static int cMaxCards = 12;
 
 	ServerSocket webSocket;
@@ -45,9 +45,10 @@ public class Game {
 					
 					if(isReconnection) 
 						new Thread(p).start();
-					else if(game.specialMode == SpecialMode.NOTSTARTED) // no match -> new player if game not started
+					else if(game.specialMode == SpecialMode.NOTSTARTED) { // no match -> new player if game not started
+						System.out.println("Connected to new player at " + socket.toString());
 						new Thread(new Player(game, socket)).start();
-					else
+					} else
 						System.out.println("Did not connect to " + socket.toString());
 				} catch(Exception e) {
 					if(game.webSocket.isClosed())
@@ -60,7 +61,7 @@ public class Game {
 			
 			game.webSocket.close();
 
-			//game.start();
+			System.out.println("Game ended");
 		} catch(IOException ex) {
 			System.out.println("Websocket server failed starting: " + ex.getMessage());
 		}
@@ -102,9 +103,9 @@ public class Game {
 		System.out.println("Websocket server started on port 2855.");
 	}
 
-	public void broadcast(String status, JSONObject data) {
+	public void broadcast(String msgType, JSONObject data) {
 		try {
-			data.put("status", status);
+			data.put("msgType", msgType);
 			String message = data.toString();
 
 			Player p = curPlayer;
@@ -117,7 +118,7 @@ public class Game {
 				p = p.getNext();
 			} while(p != curPlayer);
 		} catch(JSONException e) {
-			System.out.println("Broadcast failed: Could not add status to JSONObject. Status: " + status + ". Data: " + data.toString());
+			System.out.println("Broadcast failed: Could not add msgType to JSONObject. msgType: " + msgType + ". Data: " + data.toString());
 		}
 	}
 
@@ -146,11 +147,11 @@ public class Game {
 
 		try {
 			if(curPlayer == null) {
-				msgObj.put("enableStart", new Boolean(false));
+				msgObj.put("enableStart", Boolean.FALSE);
 			} else {
 				pSender.setNext(curPlayer.getNext());
 				curPlayer.setNext(pSender);
-				msgObj.put("enableStart", new Boolean(true));
+				msgObj.put("enableStart", Boolean.TRUE);
 			}
 			curPlayer = pSender;
 
@@ -189,6 +190,7 @@ public class Game {
 			return;
 		}
 		broadcast("STARTED", new JSONObject());
+		specialMode = SpecialMode.FIRSTCARD;
 
 		for(int i = 0; i < 5; i++) {
 			tables[i].setNation(tableStack.pop());
@@ -209,7 +211,6 @@ public class Game {
 		System.out.println("Game started");
 		curPlayer = curPlayer.getNext();
 		curPlayer.beginTurn();
-		specialMode = SpecialMode.FIRSTCARD;
 
 			//Printer.printPlayerWithIndex(curPlayer);
 			/*
@@ -286,7 +287,25 @@ public class Game {
 	}
 
 	public void end() {
+		specialMode = SpecialMode.ENDED;
 		
+		Stack<Player> winners = new Stack<Player>();
+		winners.push(curPlayer);
+		Player p = curPlayer.getNext();
+		do {
+			if(p.getPoints() >= winners.firstElement().getPoints()) {
+				if(p.getPoints() > winners.firstElement().getPoints()) winners.clear();
+				winners.push(p);
+			}
+			p = p.getNext();
+		} while(p != curPlayer);
+		JSONArray winnerNames = new JSONArray();
+		for(Player winner : winners)
+			winnerNames.put(winner.getName());
+		try {
+			broadcast("END", new JSONObject().put("winners", winnerNames));
+		} catch (JSONException e) {
+		}
 	}
 
 	public void exchangeFullTables() {
@@ -300,8 +319,10 @@ public class Game {
 				tables[i].empty();
 				if(!tableStack.empty())
 					tables[i].setNation(tableStack.pop());
-				else
+				else {
 					end();
+					return;
+				}
 			}
 		}
 
