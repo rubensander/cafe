@@ -371,6 +371,7 @@ public class Player implements Runnable {
 		return ErrType.NONE;
 	}
 
+	/*
 	private void layDownCard(int cardNr) {
 		if(cardNr != -1) {
 			cards.remove(cardNr);
@@ -378,6 +379,7 @@ public class Player implements Runnable {
 			endTurn();
 		}
 	}
+	*/
 	
 	private ErrType isValidMove(Seat pSeat, Card pCard) {
 		if(status == -1)

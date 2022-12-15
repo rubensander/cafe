@@ -23,4 +23,4 @@ app.use(express.static(__dirname + "/public"));
 //  res.sendFile(__dirname + "/public/start.html");
 //});
 app.get("", (req, res) => res.sendFile(__dirname + "/public/game.html"));
-app.listen(2853, () => console.log("Server running on port 2853"));
+app.listen(3000, () => console.log("Server running on port 3000"));

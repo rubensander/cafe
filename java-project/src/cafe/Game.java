@@ -99,8 +99,8 @@ public class Game {
 	}
 
 	public void startWebSocket() throws IOException {
-		webSocket = new ServerSocket(2855);
-		System.out.println("Websocket server started on port 2855.");
+		webSocket = new ServerSocket(8080);
+		System.out.println("Websocket server started on port 8080.");
 	}
 
 	public void broadcast(String msgType, JSONObject data) {
