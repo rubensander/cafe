@@ -1,19 +1,13 @@
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-
 # npm
 node_modules
-package-lock.json
-*.log
-*.gz
+
+# java
 java-project/bin
+java-project/.project
+cafe.jar
+
+# java docs
 java-project/doc
 
-
-# Coveralls
-coverage
-
-# Benchmarking
-benchmarks/graphs
+# vs code
+.vscode
