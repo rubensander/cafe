@@ -1,7 +1,7 @@
 //var img = new Image();
 //img.src = "./img/DE_t.svg";
 
-const ws = new WebSocket("ws://" + location.host.slice(0,-1) + "5");
+const ws = new WebSocket("ws://" + location.hostname + ":8080");
 var validMoves;
 const hand = document.getElementById("hand");
 var name = "";
@@ -116,7 +116,7 @@ ws.onmessage = function(event) {
       break;
     case "END":
       if(document.getElementById("whoseTurn").textContent === "– Du bist am Zug") {
-        wsEnd = new WebSocket("ws://" + location.host.slice(0,-1) + "5");
+        wsEnd = new WebSocket("ws://" + location.hostname + ":8080");
         setTimeout(function() {
           ws.close();
         }, 1000);
@@ -130,7 +130,7 @@ ws.onmessage = function(event) {
       break;
     case "END":
       if(document.getElementById("whoseTurn").textContent === "– Du bist am Zug") {
-        wsEnd = new WebSocket("ws://" + location.host.slice(0,-1) + "5");
+        wsEnd = new WebSocket("ws://" + location.hostname + ":8080");
         setTimeout(function() {
           ws.close();
         }, 1000);
