@@ -38,16 +38,16 @@ public class Game {
 					if(game.curPlayer != null) {
 						// is the new connection a reconnection from an already existing player?
 						do {
-							if(isReconnection = p.offerReconnection(socket)) break;
+							if(isReconnection = p.getSocket().offerReconnection(socket)) break;
 							p = p.getNext();
 						} while(p != game.curPlayer);
 					}
 					
 					if(isReconnection) 
-						new Thread(p).start();
+						new Thread(p.getSocket()).start();
 					else if(game.specialMode == SpecialMode.NOTSTARTED) { // no match -> new player if game not started
 						System.out.println("Connected to new player at " + socket.toString());
-						new Thread(new Player(game, socket)).start();
+						new Thread(new Player(game, socket).getSocket()).start();
 					} else
 						System.out.println("Did not connect to " + socket.toString());
 				} catch(Exception e) {
@@ -111,7 +111,7 @@ public class Game {
 			Player p = curPlayer;
 			do {
 				try {
-					p.send(message);
+					p.getSocket().send(message);
 				} catch(IOException e) {
 					System.out.println("Could not broadcast to player " + p.getName());
 				}
@@ -201,7 +201,7 @@ public class Game {
 		Player p = curPlayer;
 		do {
 			try {
-				p.sendHand();
+				p.getSocket().sendHand();
 			} catch(IOException e) {
 				System.out.println("Could not send hand to player " + p.getName());
 			}

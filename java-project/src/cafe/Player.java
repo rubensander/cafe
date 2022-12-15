@@ -19,7 +19,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class Player implements Runnable {
+public class Player {
 	private int points;
 	private ArrayList<Card> cards;
 	private Player next;
@@ -27,9 +27,7 @@ public class Player implements Runnable {
 	private int status;
 	private Game game;
 	private Stack<Seat> laidUnderReserve;
-	private Socket socket;
-	private InputStream in;
-	private OutputStream out;
+	private PlayerSocket socket;
 
 	public Player(Game pGame, Socket pSocket) throws IOException, NoSuchAlgorithmException {
 		game = pGame;
@@ -39,295 +37,306 @@ public class Player implements Runnable {
 		status = -1;
 		laidUnderReserve = new Stack<Seat>();
 
-		socket = pSocket;
-		
-		handshake();
+		socket = new PlayerSocket(pSocket);
 	}
+
 	
-	private void handshake() throws IOException, NoSuchAlgorithmException {
-		in = socket.getInputStream();
-		out = socket.getOutputStream();
+	public class PlayerSocket implements Runnable {
+		private Socket socket;
+		private InputStream in;
+		private OutputStream out;
+
+		public PlayerSocket(Socket pSocket) throws IOException, NoSuchAlgorithmException {
+			socket = pSocket;
 		
-		@SuppressWarnings("resource")
-		Scanner s = new Scanner(in, "UTF-8");
-
-		String data = s.useDelimiter("\\r\\n\\r\\n").next();
-		Matcher get = Pattern.compile("^GET").matcher(data);
-
-		if (get.find()) {
-			Matcher match = Pattern.compile("Sec-WebSocket-Key: (.*)").matcher(data);
-			match.find();
-			byte[] response = ("HTTP/1.1 101 Switching Protocols\r\n"
-					+ "Connection: Upgrade\r\n"
-					+ "Upgrade: websocket\r\n"
-					+ "Sec-WebSocket-Accept: "
-					+ Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest((match.group(1) + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").getBytes("UTF-8")))
-					+ "\r\n\r\n").getBytes("UTF-8");
-			out.write(response, 0, response.length);
+			handshake();
 		}
-	}
 
-	public void run() {
-		if(socket == null || socket.isClosed()) return;
-		
-		try {
-			JSONObject msgObj = parseNextMessage();
+		private void handshake() throws IOException, NoSuchAlgorithmException {
+			in = socket.getInputStream();
+			out = socket.getOutputStream();
 			
-			// if player was never before connected: get name
-			if(name.isEmpty()) {
-				if(msgObj.get("msgType").equals("JOIN")) {
-					while(msgObj.getString("name").isEmpty()) {
-						send(new JSONObject().put("msgType", "ERR").put("message", "Der Name darf nicht leer sein.").toString());
+			@SuppressWarnings("resource")
+			Scanner s = new Scanner(in, "UTF-8");
+	
+			String data = s.useDelimiter("\\r\\n\\r\\n").next();
+			Matcher get = Pattern.compile("^GET").matcher(data);
+	
+			if (get.find()) {
+				Matcher match = Pattern.compile("Sec-WebSocket-Key: (.*)").matcher(data);
+				match.find();
+				byte[] response = ("HTTP/1.1 101 Switching Protocols\r\n"
+						+ "Connection: Upgrade\r\n"
+						+ "Upgrade: websocket\r\n"
+						+ "Sec-WebSocket-Accept: "
+						+ Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest((match.group(1) + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").getBytes("UTF-8")))
+						+ "\r\n\r\n").getBytes("UTF-8");
+				out.write(response, 0, response.length);
+			}
+		}
+	
+		public void run() {
+			if(socket == null || socket.isClosed()) return;
+			
+			try {
+				JSONObject msgObj = parseNextMessage();
+				
+				// if player was never before connected: get name
+				if(name.isEmpty()) {
+					if(msgObj.get("msgType").equals("JOIN")) {
+						while(msgObj.getString("name").isEmpty()) {
+							send(new JSONObject().put("msgType", "ERR").put("message", "Der Name darf nicht leer sein.").toString());
+							msgObj = parseNextMessage();
+						}
+						name = msgObj.getString("name");
+						cards = game.join(Player.this);
+					}
+					
+					msgObj = parseNextMessage();
+					if(msgObj.get("msgType").equals("START")) {
+						if(game.specialMode == SpecialMode.NOTSTARTED)
+							game.start();
 						msgObj = parseNextMessage();
 					}
-					name = msgObj.getString("name");
-					cards = game.join(this);
 				}
 				
-				msgObj = parseNextMessage();
-				if(msgObj.get("msgType").equals("START")) {
-					if(game.specialMode == SpecialMode.NOTSTARTED)
-						game.start();
+				while(true) {
+					try {
+						if(msgObj.get("msgType").equals("SET_CARD")) {
+							ErrType err = placeCardAt(game.getSeatByNr(msgObj.getInt("seatNr")), msgObj.getInt("cardNr"));
+							if(err == ErrType.NONE) {
+								sendInfo();
+								if(game.specialMode == SpecialMode.ENDED)
+									break;
+								else
+									game.broadcastBoard();
+							}
+							else
+								sendErr(game.curPlayer.getName() + " ist am Zug!");
+						}
+						else if(msgObj.get("msgType").equals("GET_VALID_MOVES")) {
+							int cardNr = msgObj.getInt("cardNr");
+							JSONArray jsonValidMoves = new JSONArray();
+							for(int iSeat = 0; iSeat < 12; iSeat++)
+								jsonValidMoves.put(isValidMove(game.getSeatByNr(iSeat), cards.get(cardNr)));
+							JSONObject resObj = new JSONObject().put("msgType", "VALID_MOVES");
+							resObj.put("validMoves", jsonValidMoves);
+							send(resObj.toString());
+						}
+						else if(msgObj.get("msgType").equals("DRAW")) { 
+							ErrType err = drawCard();
+							if(err == ErrType.NONE) {
+								Card card = cards.get(cards.size() - 1);
+								JSONObject resObj = new JSONObject().put("msgType", "DRAWN");
+								resObj.put("card", card.getNation().toString() + "_" + card.getSex().toString());
+								send(resObj.toString());
+							} else
+								sendErr(err.toString());
+						}
+						else if(msgObj.get("msgType").equals("END_TURN")) {
+							ErrType err = endTurn();
+							if(err == ErrType.NONE)
+								game.broadcastBoard();
+							else
+								sendErr(err.toString());
+						}
+						else if(msgObj.get("msgType").equals("TAKE_BACK_CARD")) {
+							Card takenBackCard = takeBackCard();
+							if(takenBackCard != null) {
+								game.broadcastBoard();
+								JSONObject resObj = new JSONObject().put("msgType", "DRAWN");
+								resObj.put("card", takenBackCard.getNation().toString() + "_" + takenBackCard.getSex().toString());
+								send(resObj.toString());
+								sendInfo();
+							}
+						}
+						else if(msgObj.get("msgType").equals("GAME_ENDED"))
+							break;
+						else {
+							System.out.println(name + ": Unknown message: " + msgObj.toString());
+						}
+					} catch(JSONException e) {
+						System.out.println(name + "JSON error. Message was not sent or processed.");
+					}
 					msgObj = parseNextMessage();
 				}
-			}
-			
-			while(true) {
+			} catch(JSONException e) {
+				System.out.println(name + ": JSON error. " + e.getMessage());
+			} catch(IOException e) {
+				System.out.println(name + ": IO receiving Error. " + e.getMessage());
+			} catch(WebsocketException e) {
+				if(e.opcode == 8) 
+					System.out.println(name + ": Websocket closed by client. Payload: " + Arrays.toString(e.payload) + ".");
+				else
+					System.out.println(name + ": Websocket Error. Opcode: " + e.opcode + ". Length: " + e.length + ". Payload: " + Arrays.toString(e.payload) + ".");
+			} finally {
 				try {
-					if(msgObj.get("msgType").equals("SET_CARD")) {
-						ErrType err = placeCardAt(game.getSeatByNr(msgObj.getInt("seatNr")), msgObj.getInt("cardNr"));
-						if(err == ErrType.NONE) {
-							sendInfo();
-							if(game.specialMode == SpecialMode.ENDED)
-								break;
+					in.close();
+					out.close();
+					socket.close();
+				} catch(IOException ex) {}
+			}
+		}
+		
+		public boolean offerReconnection(Socket newSocket) {
+			String oldAddr = ((InetSocketAddress) socket.getRemoteSocketAddress()).getHostName();
+			String newAddr = ((InetSocketAddress) newSocket.getRemoteSocketAddress()).getHostName();
+			System.out.println(name + ": " + socket.toString() + "->" + newSocket.toString());
+			//TODO: cookie for session id?
+			if(socket == null || socket.isClosed() && oldAddr.equals(newAddr)) {
+				socket = newSocket;
+				try {
+					handshake();
+					System.out.println(name + " reconnected successfully.");
+					if(game.specialMode == SpecialMode.NOTSTARTED) {
+						try {
+							JSONObject msgObj = new JSONObject();
+							
+							if(next == Player.this) 
+								msgObj.put("enableStart", Boolean.FALSE);
 							else
-								game.broadcastBoard();
+								msgObj.put("enableStart", Boolean.TRUE);
+							
+							// get player list (in correct order)
+							JSONArray players = new JSONArray();
+							Player p = game.curPlayer.getNext();
+							do {
+								players.put(p.getName());
+								p = p.getNext();
+							} while(p != game.curPlayer.getNext());
+							msgObj.put("players", players);
+							msgObj.put("msgType", "NEW_PLAYER");
+							send(msgObj.toString());
+						} catch(JSONException e) {
+							
 						}
-						else 
-							sendErr(game.curPlayer.getName() + " ist am Zug!");
+					} else {
+						send("{\"msgType\":\"STARTED\"}");
+						sendHand();
+						game.broadcastBoard();
+						send("{\"msgType\":\"TURN_OF\", \"player\":\"" + game.curPlayer.getName() + "\", \"yourName\":\"" + name + "\"}");
 					}
-					else if(msgObj.get("msgType").equals("GET_VALID_MOVES")) {
-						int cardNr = msgObj.getInt("cardNr");
-						JSONArray jsonValidMoves = new JSONArray();
-						for(int iSeat = 0; iSeat < 12; iSeat++)
-							jsonValidMoves.put(isValidMove(game.getSeatByNr(iSeat), cards.get(cardNr)));
-						JSONObject resObj = new JSONObject().put("msgType", "VALID_MOVES");
-						resObj.put("validMoves", jsonValidMoves);
-						send(resObj.toString());
-					}
-					else if(msgObj.get("msgType").equals("DRAW")) { 
-						ErrType err = drawCard();
-						if(err == ErrType.NONE) {
-							Card card = cards.get(cards.size() - 1);
-							JSONObject resObj = new JSONObject().put("msgType", "DRAWN");
-							resObj.put("card", card.getNation().toString() + "_" + card.getSex().toString());
-							send(resObj.toString());
-						} else
-							sendErr(err.toString());
-					}
-					else if(msgObj.get("msgType").equals("END_TURN")) {
-						ErrType err = endTurn();
-						if(err == ErrType.NONE)
-							game.broadcastBoard();
-						else
-							sendErr(err.toString());
-					}
-					else if(msgObj.get("msgType").equals("TAKE_BACK_CARD")) {
-						Card takenBackCard = takeBackCard();
-						if(takenBackCard != null) {
-							game.broadcastBoard();
-							JSONObject resObj = new JSONObject().put("msgType", "DRAWN");
-							resObj.put("card", takenBackCard.getNation().toString() + "_" + takenBackCard.getSex().toString());
-							send(resObj.toString());
-							sendInfo();
-						}
-					}
-					else if(msgObj.get("msgType").equals("GAME_ENDED"))
-						break;
-					else {
-						System.out.println(name + ": Unknown message: " + msgObj.toString());
-					}
-				} catch(JSONException e) {
-					System.out.println(name + "JSON error. Message was not sent or processed.");
+					return true;
+					
+				} catch(IOException | NoSuchAlgorithmException e) {
+					System.out.println(name + ": Handshake failed." + e.getMessage());
 				}
-				msgObj = parseNextMessage();
 			}
-		} catch(JSONException e) {
-			System.out.println(name + ": JSON error. " + e.getMessage());
-		} catch(IOException e) {
-			System.out.println(name + ": IO receiving Error. " + e.getMessage());
-		} catch(WebsocketException e) {
-			if(e.opcode == 8) 
-				System.out.println(name + ": Websocket closed by client. Payload: " + Arrays.toString(e.payload) + ".");
-			else
-				System.out.println(name + ": Websocket Error. Opcode: " + e.opcode + ". Length: " + e.length + ". Payload: " + Arrays.toString(e.payload) + ".");
-		} finally {
-			try {
-				in.close();
-				out.close();
-				socket.close();
-			} catch(IOException ex) {}
+			return false;
 		}
-	}
 	
-	public boolean offerReconnection(Socket newSocket) {
-		String oldAddr = ((InetSocketAddress) socket.getRemoteSocketAddress()).getHostName();
-		String newAddr = ((InetSocketAddress) newSocket.getRemoteSocketAddress()).getHostName();
-		System.out.println(name + ": " + socket.toString() + "->" + newSocket.toString());
-		//TODO: cookie for session id?
-		if(socket == null || socket.isClosed() && oldAddr.equals(newAddr)) {
-			socket = newSocket;
-			try {
-				handshake();
-				System.out.println(name + " reconnected successfully.");
-				if(game.specialMode == SpecialMode.NOTSTARTED) {
+		private JSONObject parseNextMessage() throws IOException, WebsocketException {
+			int status = in.read();
+			if(status == 129 || status == 136) {
+				int length = in.read() - 128; // subtract "mask" bit
+		
+				if(length < 126) {
+					byte[] decoded = new byte[length];
+					byte[] key = new byte[] { (byte) in.read(), (byte) in.read(), (byte) in.read(), (byte) in.read() };
+					for(byte i = 0; i < length; i++) {
+						decoded[i] = (byte) (in.read() ^ key[i & 0x3]);
+					}
+		
+					if(status == 136)
+						throw new WebsocketException(status, length, decoded);
+					
 					try {
-						JSONObject msgObj = new JSONObject();
-						
-						if(next == this) 
-							msgObj.put("enableStart", Boolean.FALSE);
-						else
-							msgObj.put("enableStart", Boolean.TRUE);
-						
-						// get player list (in correct order)
-						JSONArray players = new JSONArray();
-						Player p = game.curPlayer.getNext();
-						do {
-							players.put(p.getName());
-							p = p.getNext();
-						} while(p != game.curPlayer.getNext());
-						msgObj.put("players", players);
-						msgObj.put("msgType", "NEW_PLAYER");
-						send(msgObj.toString());
-					} catch(JSONException e) {
-						
+						return new JSONObject(new String(decoded));
+					} catch(JSONException ex) {
+						return new JSONObject();
 					}
-				} else {
-					send("{\"msgType\":\"STARTED\"}");
-					sendHand();
-					game.broadcastBoard();
-					send("{\"msgType\":\"TURN_OF\", \"player\":\"" + game.curPlayer.getName() + "\", \"yourName\":\"" + name + "\"}");
 				}
-				return true;
-				
-			} catch(IOException | NoSuchAlgorithmException e) {
-				System.out.println(name + ": Handshake failed." + e.getMessage());
 			}
+			throw new WebsocketException(status, 0, new byte[0]);
 		}
-		return false;
-	}
-
-	private JSONObject parseNextMessage() throws IOException, WebsocketException {
-		int status = in.read();
-		if(status == 129 || status == 136) {
-			int length = in.read() - 128; // subtract "mask" bit
 	
-			if(length < 126) {
-				byte[] decoded = new byte[length];
-				byte[] key = new byte[] { (byte) in.read(), (byte) in.read(), (byte) in.read(), (byte) in.read() };
-				for(byte i = 0; i < length; i++) {
-					decoded[i] = (byte) (in.read() ^ key[i & 0x3]);
-				}
+		public void send(String message) throws IOException {
+			byte[] payload = message.getBytes();
+			byte[] packet;
+			int offset;
+			if(payload.length < 126) {
+				packet = new byte[payload.length + 2];
+				packet[1] = (byte) payload.length;
+				offset = 2;
+			} else {
+				packet = new byte[payload.length + 4];
+				packet[1] = (byte) 126;
+				packet[2] = (byte) (payload.length / 256);
+				packet[3] = (byte) (payload.length % 256);
+				offset = 4;
+			}
 	
-				if(status == 136)
-					throw new WebsocketException(status, length, decoded);
-				
-				try {
-					return new JSONObject(new String(decoded));
-				} catch(JSONException ex) {
-					return new JSONObject();
+			packet[0] = (byte) 129;
+	
+			for(int i = 0; i < payload.length; i++) {
+				packet[i + offset] = payload[i];
+			}
+	
+			//try {
+				out.write(packet, 0, packet.length);
+			//} catch(IOException e) {
+			//	System.out.println(name + ": IO sending Error. " + e.getMessage());
+			//}
+		}
+	
+		public void sendHand() throws IOException {
+			try {
+				JSONObject data = new JSONObject();
+				data.put("msgType", "HAND");
+				JSONArray jsonCards = new JSONArray();
+				for(Card card : cards) {
+					jsonCards.put(card.getNation().toString() + "_" + card.getSex().toString());
 				}
+				data.put("cards", jsonCards);
+				data.put("canEndTurn", status > 0);
+				data.put("points", points);
+				String message = data.toString();
+				send(message);
+				
+				sendInfo();
+			} catch(JSONException e) {
+				System.out.println(name + ": JSON Error while sending hand. " + e.getMessage());
 			}
 		}
-		throw new WebsocketException(status, 0, new byte[0]);
-	}
-
-	public void send(String message) throws IOException {
-		byte[] payload = message.getBytes();
-		byte[] packet;
-		int offset;
-		if(payload.length < 126) {
-			packet = new byte[payload.length + 2];
-			packet[1] = (byte) payload.length;
-			offset = 2;
-		} else {
-			packet = new byte[payload.length + 4];
-			packet[1] = (byte) 126;
-			packet[2] = (byte) (payload.length / 256);
-			packet[3] = (byte) (payload.length % 256);
-			offset = 4;
-		}
-
-		packet[0] = (byte) 129;
-
-		for(int i = 0; i < payload.length; i++) {
-			packet[i + offset] = payload[i];
-		}
-
-		//try {
-			out.write(packet, 0, packet.length);
-		//} catch(IOException e) {
-		//	System.out.println(name + ": IO sending Error. " + e.getMessage());
-		//}
-	}
-
-	public void sendHand() throws IOException {
-		try {
-			JSONObject data = new JSONObject();
-			data.put("msgType", "HAND");
-			JSONArray jsonCards = new JSONArray();
-			for(Card card : cards) {
-				jsonCards.put(card.getNation().toString() + "_" + card.getSex().toString());
-			}
-			data.put("cards", jsonCards);
-			data.put("canEndTurn", status > 0);
+		
+		private void sendInfo() throws IOException, JSONException {
+			JSONObject data = new JSONObject().put("msgType", "INFO");
 			data.put("points", points);
+			data.put("canTakeBackCard", false);
+			data.put("canEndTurn", false);
+			if(!laidUnderReserve.empty())
+				data.put("canTakeBackCard", true);
+			else if(status > 0 && game.specialMode != SpecialMode.ENDED)
+				data.put("canEndTurn", true);
 			String message = data.toString();
 			send(message);
-			
-			sendInfo();
-		} catch(JSONException e) {
-			System.out.println(name + ": JSON Error while sending hand. " + e.getMessage());
 		}
-	}
-	
-	private void sendInfo() throws IOException, JSONException {
-		JSONObject data = new JSONObject().put("msgType", "INFO");
-		data.put("points", points);
-		data.put("canTakeBackCard", false);
-		data.put("canEndTurn", false);
-		if(!laidUnderReserve.empty())
-			data.put("canTakeBackCard", true);
-		else if(status > 0 && game.specialMode != SpecialMode.ENDED)
-			data.put("canEndTurn", true);
-		String message = data.toString();
-		send(message);
-	}
-	
-	private void sendErr(String message) throws IOException {
-		try {
-			JSONObject errObj = new JSONObject();
-			errObj.put("msgType", "ERR");
-			errObj.put("message", message);
-			
-			send(errObj.toString());
-		} catch(JSONException e) {
-			System.out.println(name + ": JSON Error while sending error message. " + e.getMessage());
+		
+		private void sendErr(String message) throws IOException {
+			try {
+				JSONObject errObj = new JSONObject();
+				errObj.put("msgType", "ERR");
+				errObj.put("message", message);
+				
+				send(errObj.toString());
+			} catch(JSONException e) {
+				System.out.println(name + ": JSON Error while sending error message. " + e.getMessage());
+			}
 		}
-	}
-
-	public class WebsocketException extends Exception {
-		private static final long serialVersionUID = 1L;
-		public boolean fin;
-		public int opcode;
-		public int length;
-		public byte[] payload;
-
-		public WebsocketException(int status, int length, byte[] payload) {
-			this.fin = (status / 128 != 0);
-			this.opcode = status % 128;
-			this.length = length;
-			this.payload = payload;
+	
+		public class WebsocketException extends Exception {
+			private static final long serialVersionUID = 1L;
+			public boolean fin;
+			public int opcode;
+			public int length;
+			public byte[] payload;
+	
+			public WebsocketException(int status, int length, byte[] payload) {
+				this.fin = (status / 128 != 0);
+				this.opcode = status % 128;
+				this.length = length;
+				this.payload = payload;
+			}
 		}
 	}
 
@@ -455,4 +464,9 @@ public class Player implements Runnable {
 		next.beginTurn();
 		return ErrType.NONE;
 	}
+
+	public PlayerSocket getSocket() {
+		return socket;
+	}
+
 }
