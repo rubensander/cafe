@@ -4,7 +4,7 @@
   "description": "Café International web game",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "worker": "java cafe.jar"
   },
   "author": "",
   "license": "ISC",
