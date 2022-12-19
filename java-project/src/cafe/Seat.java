@@ -14,17 +14,33 @@ public class Seat {
     public void set(Card pCard) {
         card = pCard;
         taken = true;
+        table.set(pCard.getSex());
     }
 
     public ErrType isValidMove(Card pCard, SpecialMode pMode) {
+        Sex sex = pCard.getSex();
         if(taken) {
             return ErrType.SEAT_IS_TAKEN;
         } else if(table.getNation() != pCard.getNation()) {
             return ErrType.TABLE_MISMATCH;
-        } else if(pMode != SpecialMode.FIRSTCARD && table.isEmpty()) {
-            return ErrType.ONLY_IN_CIRCLE;
+        } else if(pMode == SpecialMode.FIRSTCARD) {
+            return ErrType.NONE;
+        } else if(pMode == SpecialMode.CIRCLE) {
+            if(table.isCircle) {
+                if(table.getBalance(sex) < 0)
+                    return ErrType.CIRCLE_WRONG_SEX;
+                else
+                    return ErrType.NONE;
+            } else {
+                return ErrType.CIRCLE_WRONG_TABLE;
+            }
+        } else if(table.isEmpty()) {
+            return ErrType.ALONE;
+        } else if(table.getBalance(sex) > 0) {
+            return ErrType.SEX_IMBALANCE;
+        } else {
+            return ErrType.NONE;
         }
-        return table.canSit(pCard.getSex(), pMode);
     }
 
     public Card empty() {
@@ -55,4 +71,9 @@ public class Seat {
     public int getPoints() {
         return table.getPoints();
     }
+/*
+    public boolean areAdjacentSeats(Seat[] seats) {
+        return table.areMySeats(seats);
+    }
+*/
 }

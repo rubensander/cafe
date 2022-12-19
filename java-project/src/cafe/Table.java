@@ -3,10 +3,16 @@ package cafe;
 public class Table {
     Seat[] seats;
     Nation nation;
+    public boolean isCircle;
+    int countTaken;
+    int countBalance; // f +, m -
 
     public Table(Nation pNation) {
         nation = pNation;
         seats = new Seat[4];
+        isCircle = false;
+        countTaken = 0;
+        countBalance = 0;
     }
 
     public void registerSeat(Seat pSeat) {
@@ -18,43 +24,6 @@ public class Table {
         }
     }
 
-//     public int getSeatsCount(Nation pNation) {
-//         int count = 0;
-//         for(Seat seat : seats) {
-//             if(seat.getNation() == pNation)
-//                 count++;
-//         }
-//         return count;
-//     }
-
-    public ErrType canSit(Sex pSex, SpecialMode pMode) {
-        int countTaken = 0;
-        int countBalance = 0;
-        for(Seat seat : seats) {
-            if(seat.isTaken()) {
-            	countTaken++;
-                if(seat.getSex() == pSex)
-                	countBalance++;
-                else
-                	countBalance--;
-            }
-        }
-        if(countTaken > 0) {
-        	if(countTaken == countBalance) 
-        		return ErrType.ONLY_IN_CIRCLE; 
-        	else 
-        		return ErrType.SEX_INEQUALITY;
-        }
-        return ErrType.NONE;
-        /*
-        if(countBalance <= 0 && pMode == SpecialMode.CIRCLE) return ErrType.INCOMPLETE_CIRCLE;
-        if(countBalance <= 0) return ErrType.NONE;
-        if(countTaken == 1 && pMode == SpecialMode.CIRCLE) return ErrType.SEX_INEQUALITY;
-        if(countTaken == countBalance) return ErrType.ONLY_IN_CIRCLE;
-        return ErrType.SEX_INEQUALITY;
-        */
-    }
-
     public Nation getNation() {
         return nation;
     }
@@ -64,50 +33,76 @@ public class Table {
     }
 
     public boolean isFull() {
-        for(Seat seat : seats) {
-            if(!seat.isTaken()) return false;
-        }
-        return true;
+        return countTaken == 4;
     }
 
     public boolean isEmpty() {
-        for(Seat seat : seats) {
-            if(seat.isTaken()) return false;
-        }
-        return true;
+        return countTaken == 0;
     }
 
     public void empty() {
         nation = null;
+        countTaken = 0;
+        countBalance = 0;
         for(Seat seat : seats){
             seat.empty();
         }
     }
+/*
+    public ErrType canSit(Sex pSex) {
+        int relativeBalance = countBalance;
+        if(pSex == Sex.m) relativeBalance = -1 * relativeBalance;
 
+        if(isCircle && relativeBalance < 0) {
+            return ErrType.CIRCLE_WRONG_SEX;
+        } else if(relativeBalance >= 1) {
+            return ErrType.SEX_INEQUALITY;
+        }
+        return ErrType.NONE;
+    }
+*/
     public int getPoints() {
-        int points = 0;
-        boolean oneNation = true;
+        int points;
+        
+        if(countTaken == 1)
+            points = 0;
+        else if(Math.abs(countBalance) == 4)
+        	points = 20;
+        else
+        	points = countTaken;
 
-        int countBalance = 0;
-        for(Seat seat : seats) {
-            if(seat.isTaken()) {
-                points++;
-                if(seat.getNation() != nation)
-                    oneNation = false;
-                if(seat.getSex() == Sex.f) countBalance++; else countBalance--;
+        if(isFull()) {
+            for(Seat seat : seats) {
+                if(seat.getNation() != nation) return points;
             }
         }
-        countBalance = Math.abs(countBalance);
+        return 2 * points;
+    }
+/*
+    public boolean areMySeats(Seat[] pSeats) {
+        for(Seat s1 : pSeats) {
+            boolean isMySeat = false;
+            for(Seat s2 : seats) {
+                if(s1.equals(s2)) isMySeat = true;
+            }
+            if(!isMySeat) return false;
+        }
+        return true;
+    }
+*/
+    public void set(Sex pSex) {
+        countTaken++;
+        if(pSex == Sex.f) countBalance++; else countBalance--;
+    }
 
-        if(points == 1)
-            return 0;
-        else if(countBalance == 4) // is complete circle
-        	return 40;
-        else if(countBalance > 1) // else: is incomplete circle
-        	return 0;
-        else if(oneNation)
-            return 2*points;
-        else
-            return points;
+    public int getBalance(Sex pSex) {
+        int relativeBalance = countBalance;
+        if(pSex == Sex.m) relativeBalance = -1 * relativeBalance;
+        return relativeBalance;
+    }
+
+    public boolean suitableForCircle() {
+        if(isCircle) return false;
+        return (countTaken == Math.abs(countBalance));
     }
 }

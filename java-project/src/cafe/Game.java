@@ -355,6 +355,10 @@ public class Game {
 	public Seat getSeatByNr(int seatNr) {
 		return seats[seatNr];
 	}
+
+	public Table getTableByNr(int tableNr) {
+		return tables[tableNr];
+	}
 	
 	/*
   private void createSzenario() {

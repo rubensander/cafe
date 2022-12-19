@@ -11,6 +11,10 @@
   color: #C00;
 }
 
+#circleInfo {
+  display: none;
+}
+
 img {
   border-style: solid;
   border-color: #FFFFFF00;
@@ -45,10 +49,6 @@ td, tr {
   white-space: nowrap;
 }
 
-.handcard {
-  /*position: absolute;*/
-}
-
 .smallButton {
   background-color: #0057A3;
   border-color: #0057A3;
@@ -71,4 +71,18 @@ td, tr {
 
 #btnTakeBackCard {
   display: none;
+}
+
+#btnCircle {
+  display: none;
+}
+
+.selectCircle {
+  border-color: #00CC00;
+  border-style: dashed;
+  cursor: pointer;
+}
+
+.selectCircle:hover {
+  border-style: solid;
 }

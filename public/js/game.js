@@ -72,13 +72,13 @@ ws.onmessage = function(event) {
           seat.style.borderColor = "";
           seat.style.borderStyle = "";
         }
-      }
+      }/*
       if(msgObj.specialMode == "SECONDCARD" || msgObj.specialMode == "CIRCLE") {
         document.getElementById("btnEndTurn").style.display = "none";
         document.getElementById("btnTakeBackCard").style.display = "inline-block";
       } else {
         document.getElementById("btnTakeBackCard").style.display = "none";
-      }
+      }*/
       break;
     case "HAND":
     // TODO
@@ -97,12 +97,14 @@ ws.onmessage = function(event) {
         name = msgObj.yourName;
       if(msgObj.player == name) {
         document.getElementById("whoseTurn").textContent = "– Du bist am Zug";
-          for(node of hand.childNodes) {
+        for(node of hand.childNodes) {
           node.draggable = true;
         }
+        document.getElementById("btnCircle").style.display = "inline-block";
       } else {
         document.getElementById("whoseTurn").textContent = "– " + msgObj.player + " ist am Zug";
         document.getElementById("btnEndTurn").style.display = "none";
+        document.getElementById("btnCircle").style.display = "none";
       }
       break;
     case "DRAWN":
@@ -113,6 +115,17 @@ ws.onmessage = function(event) {
       document.getElementById("points").textContent = msgObj.points;
       document.getElementById("btnEndTurn").style.display = msgObj.canEndTurn ? "inline-block" : "none";
       document.getElementById("btnTakeBackCard").style.display = msgObj.canTakeBackCard ? "inline-block" : "none";
+      document.getElementById("btnCircle").style.display = msgObj.canStartCircle ? "inline-block" : "none";
+      document.getElementById("btnCircle").innerText = msgObj.isCircle ? "Abbrechen" : "Stammtisch";
+      break;
+    case "CIRCLE":
+      for(i in msgObj.suitableTables) {
+        if(msgObj.suitableTables[i]) {
+          let table = document.getElementById("table" + i);
+          table.classList.add('selectCircle')
+          table.onclick = tableForCircleSelected;
+        }
+      }
       break;
     case "END":
       if(document.getElementById("whoseTurn").textContent === "– Du bist am Zug") {
@@ -127,17 +140,6 @@ ws.onmessage = function(event) {
       break;
     case "POINTS":
       document.getElementById("points").textContent = msgObj.points;
-      break;
-    case "END":
-      if(document.getElementById("whoseTurn").textContent === "– Du bist am Zug") {
-        wsEnd = new WebSocket("ws://" + location.hostname + ":8080");
-        setTimeout(function() {
-          ws.close();
-        }, 1000);
-      }
-      document.getElementById("whoseTurn").textContent = msgObj.winners + " hat gewonnen!";
-      ws.send(JSON.stringify({ status:"GAME_ENDED" }));
-      document.getElementById("websocketStatus").style.display = "none";
       break;
     case "ERR":
       document.getElementById("websocketStatus").style.display = "none";
@@ -241,6 +243,7 @@ function setIfSelected(ev) {
   ev.target.src = hand.childNodes[selectedCard].src;
   ws.send(JSON.stringify({ msgType:"SET_CARD", cardNr: selectedCard, seatNr }));
   hand.removeChild(hand.childNodes[selectedCard]);
+  document.getElementById("btnCircle").style.display = "none";
   selectedCard = -1;
 }
 
@@ -256,8 +259,34 @@ function takeBackCard() {
   ws.send(JSON.stringify({ msgType:"TAKE_BACK_CARD" }));
 }
 
-function takeBackCard() {
-  ws.send(JSON.stringify({ status:"TAKE_BACK_CARD" }));
+function selectTableForCircle() {
+  if(document.getElementById("btnCircle").innerText == "Stammtisch") {
+    document.getElementById("btnCircle").innerText = "Abbrechen";
+    document.getElementById("whoseTurn").style.display = "none";
+    document.getElementById("circleInfo").style.display = "inline-block";
+    ws.send(JSON.stringify({ msgType:"CIRCLE", info: true }));
+  } else {
+    document.getElementById("btnCircle").innerText = "Stammtisch";
+    for(table of document.getElementsByClassName("table")) {
+      table.onclick = undefined;
+      table.style = '';
+      table.classList.remove('selectCircle');
+    }
+    ws.send(JSON.stringify({ msgType:"CIRCLE", cancel: true }));
+    document.getElementById("whoseTurn").style.display = "inline-block";
+    document.getElementById("circleInfo").style.display = "none";
+  }
+}
+
+function tableForCircleSelected(ev) {
+  ev.target.style = 'border-color: #00CC00; border-style: solid; cursor: default;';
+  for(table of document.getElementsByClassName("table")) {
+    table.onclick = undefined;
+    table.classList.remove('selectCircle');
+  }
+  ws.send(JSON.stringify({ msgType:"CIRCLE", tableNr: ev.target.id.slice(5) }));
+  document.getElementById("whoseTurn").style.display = "inline-block";
+  document.getElementById("circleInfo").style.display = "none";
 }
 
 function addHandcard(card) {

@@ -2,6 +2,7 @@ package cafe;
 
 public class CenterSeat extends Seat {
     Table table2, table3;
+
     public CenterSeat(Table pTable1, Table pTable2, Table pTable3) {
         super(pTable1);
 
@@ -13,31 +14,38 @@ public class CenterSeat extends Seat {
     }
 
     @Override
+    public void set(Card pCard) {
+        card = pCard;
+        taken = true;
+        table.set(pCard.getSex());
+        table2.set(pCard.getSex());
+        table3.set(pCard.getSex());
+    }
+
+    @Override
     public ErrType isValidMove(Card pCard, SpecialMode pMode) {
+        Sex sex = pCard.getSex();
         if(taken) {
             return ErrType.SEAT_IS_TAKEN;
         } else if(table.getNation() != pCard.getNation() && table2.getNation() != pCard.getNation() && table3.getNation() != pCard.getNation()) {
             return ErrType.TABLE_MISMATCH;
         } else if(pMode == SpecialMode.FIRSTCARD) {
         	return ErrType.NONE;
+        } else if(pMode == SpecialMode.CIRCLE) {
+            if(table.isCircle) {
+                if(table.getBalance(sex) < 0) return ErrType.CIRCLE_WRONG_SEX; else return ErrType.NONE;
+            } else if(table2.isCircle) {
+                if(table2.getBalance(sex) < 0) return ErrType.CIRCLE_WRONG_SEX; else return ErrType.NONE;
+            } else if(table3.isCircle) {
+                if(table3.getBalance(sex) < 0) return ErrType.CIRCLE_WRONG_SEX; else return ErrType.NONE;
+            } else {
+                return ErrType.CIRCLE_WRONG_TABLE;
+            }
         } else if(table.isEmpty() && table2.isEmpty() && table3.isEmpty()) {
             return ErrType.ALONE;
+        } else if(table.getBalance(sex) > 0 || table3.getBalance(sex) > 0 || table3.getBalance(sex) > 0) {
+            return ErrType.SEX_IMBALANCE;
         }
-        ErrType[] canSit = {table.canSit(pCard.getSex(), pMode), table2.canSit(pCard.getSex(), pMode), table3.canSit(pCard.getSex(), pMode)};
-        boolean onlyInCircle = false;
-        boolean incompleteCircle = true;
-        for(int i = 0; i <= 2; i++) {
-        	if(canSit[i] != ErrType.INCOMPLETE_CIRCLE) incompleteCircle = false;
-        	if(canSit[i] == ErrType.SEX_INEQUALITY) return ErrType.SEX_INEQUALITY;
-        	if(canSit[i] == ErrType.ONLY_IN_CIRCLE) {
-        		if(!onlyInCircle) 
-        			onlyInCircle = true;
-        		else
-        			return ErrType.SEX_INEQUALITY;
-        	}
-        }
-        if(incompleteCircle) return ErrType.INCOMPLETE_CIRCLE;
-        if(onlyInCircle) return ErrType.ONLY_IN_CIRCLE;
         return ErrType.NONE;
     }
 
@@ -45,4 +53,10 @@ public class CenterSeat extends Seat {
     public int getPoints() {
         return table.getPoints() + table2.getPoints() + table3.getPoints();
     }
+/*
+    @Override
+    public boolean areAdjacentSeats(Seat[] seats) {
+        return (table.areMySeats(seats) || table2.areMySeats(seats) || table3.areMySeats(seats));
+    }
+*/
 }

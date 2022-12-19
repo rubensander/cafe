@@ -103,22 +103,22 @@ public class Player {
 				while(true) {
 					try {
 						if(msgObj.get("msgType").equals("SET_CARD")) {
-							ErrType err = placeCardAt(game.getSeatByNr(msgObj.getInt("seatNr")), msgObj.getInt("cardNr"));
-							if(err == ErrType.NONE) {
+							if(status > -1) {
+								placeCardAt(game.getSeatByNr(msgObj.getInt("seatNr")), msgObj.getInt("cardNr"));
 								sendInfo();
 								if(game.specialMode == SpecialMode.ENDED)
 									break;
 								else
 									game.broadcastBoard();
-							}
-							else
+							} else {
 								sendErr(game.curPlayer.getName() + " ist am Zug!");
+							}
 						}
 						else if(msgObj.get("msgType").equals("GET_VALID_MOVES")) {
-							int cardNr = msgObj.getInt("cardNr");
+							Card card = cards.get(msgObj.getInt("cardNr"));
 							JSONArray jsonValidMoves = new JSONArray();
 							for(int iSeat = 0; iSeat < 12; iSeat++)
-								jsonValidMoves.put(isValidMove(game.getSeatByNr(iSeat), cards.get(cardNr)));
+								jsonValidMoves.put(game.getSeatByNr(iSeat).isValidMove(card, game.specialMode));
 							JSONObject resObj = new JSONObject().put("msgType", "VALID_MOVES");
 							resObj.put("validMoves", jsonValidMoves);
 							send(resObj.toString());
@@ -149,6 +149,22 @@ public class Player {
 								send(resObj.toString());
 								sendInfo();
 							}
+						}
+						else if(msgObj.get("msgType").equals("CIRCLE")) {
+							ErrType err = ErrType.NONE;
+							if(msgObj.has("tableNr")) {
+								err = startCircle(msgObj.getInt("tableNr"));
+							} else if(msgObj.has("cancel")) {
+								err = cancelCircle();
+							} else if(msgObj.has("info")) {
+								JSONArray jsonSuitableTables = new JSONArray();
+								for(int iTable = 0; iTable < 5; iTable++)
+									jsonSuitableTables.put(game.getTableByNr(iTable).suitableForCircle());
+								JSONObject resObj = new JSONObject().put("msgType", "CIRCLE");
+								resObj.put("suitableTables", jsonSuitableTables);
+								send(resObj.toString());
+							}
+							if(err != ErrType.NONE) sendErr(err.toString());
 						}
 						else if(msgObj.get("msgType").equals("GAME_ENDED"))
 							break;
@@ -304,10 +320,17 @@ public class Player {
 			data.put("points", points);
 			data.put("canTakeBackCard", false);
 			data.put("canEndTurn", false);
+			data.put("canStartCircle", false);
+			data.put("isCircle", false);
 			if(!laidUnderReserve.empty())
 				data.put("canTakeBackCard", true);
 			else if(status > 0 && game.specialMode != SpecialMode.ENDED)
 				data.put("canEndTurn", true);
+			else if(status == 0)
+				data.put("canStartCircle", true);
+			if(game.specialMode == SpecialMode.CIRCLE)
+				data.put("isCircle", true);
+
 			String message = data.toString();
 			send(message);
 		}
@@ -389,49 +412,24 @@ public class Player {
 		}
 	}
 	*/
-	
-	private ErrType isValidMove(Seat pSeat, Card pCard) {
-		if(status == -1)
-			return ErrType.SB_ELSES_TURN;
-		else if(status == 3 && game.specialMode != SpecialMode.CIRCLE)
-			return ErrType.MAX_CARDS_LAID;
-		
-		ErrType validMove = pSeat.isValidMove(pCard, game.specialMode);
-		if(status > 0 && validMove == ErrType.ONLY_IN_CIRCLE && game.specialMode != SpecialMode.CIRCLE)
-			return ErrType.SEX_INEQUALITY;
-		return validMove;
-	}
 
-	private ErrType placeCardAt(Seat pSeat, int cardNr) {
-		ErrType err = isValidMove(pSeat, cards.get(cardNr));
-		
-		if(err == ErrType.ONLY_IN_CIRCLE && game.specialMode != SpecialMode.CIRCLE) {
-			game.specialMode = SpecialMode.CIRCLE;
-			status--;
+	private void placeCardAt(Seat pSeat, int cardNr) {
+		pSeat.set(cards.get(cardNr));
+		cards.remove(cardNr);
+		status++;
+		points += pSeat.getPoints();
+		if (game.specialMode == SpecialMode.FIRSTCARD) {
+			laidUnderReserve.push(pSeat);
+			game.specialMode = SpecialMode.SECONDCARD;
+		} else if(game.specialMode == SpecialMode.CIRCLE && status < 4) {
+			laidUnderReserve.push(pSeat);
+		} else {
+			game.specialMode = SpecialMode.NONE;
+			game.exchangeFullTables();
+			laidUnderReserve.clear();
+			if(game.specialMode != SpecialMode.ENDED && status >= 3)
+				endTurn();
 		}
-		if(err == ErrType.NONE || err == ErrType.ONLY_IN_CIRCLE) {
-			pSeat.set(cards.get(cardNr));
-			cards.remove(cardNr);
-			status++;
-			points += pSeat.getPoints();
-			if (game.specialMode == SpecialMode.FIRSTCARD) {
-				laidUnderReserve.push(pSeat);
-				game.specialMode = SpecialMode.SECONDCARD;
-			} else if(game.specialMode == SpecialMode.CIRCLE && status < 4) {
-				laidUnderReserve.push(pSeat);
-			} else {
-				game.specialMode = SpecialMode.NONE;
-				game.exchangeFullTables();
-				if(game.specialMode == SpecialMode.ENDED)
-					return ErrType.NONE;
-				//if(game.specialMode != SpecialMode.CIRCLE)
-				laidUnderReserve.clear();
-				if(status >= 3)
-					endTurn();
-			}
-			return ErrType.NONE;
-		}
-		return err;
 	}
 
 	private Card takeBackCard() {
@@ -457,7 +455,7 @@ public class Player {
 		if(game.specialMode == SpecialMode.SECONDCARD)
 			return ErrType.ALONE;
 		if(game.specialMode == SpecialMode.CIRCLE)
-			return ErrType.INCOMPLETE_CIRCLE;
+			return ErrType.CIRCLE_INCOMPLETE;
 		if(status == 0)
 			return ErrType.NO_CARD_LAID;
 		status = -1;
@@ -469,4 +467,44 @@ public class Player {
 		return socket;
 	}
 
+	private ErrType startCircle(int tableNr) {
+		if(status == -1) 
+			return ErrType.SB_ELSES_TURN;
+		if(status > 0) 
+			return ErrType.CARD_LAID;
+		if(game.specialMode == SpecialMode.CIRCLE)
+			return ErrType.CIRCLE_INCOMPLETE;
+		
+		Table table = game.getTableByNr(tableNr);
+		if(table.suitableForCircle()) {
+			game.specialMode = SpecialMode.CIRCLE;
+			table.isCircle = true;
+			return ErrType.NONE;
+		} else {
+			return ErrType.CIRCLE_UNSUITABLE_TABLE;
+		}
+		
+	}
+
+	private ErrType cancelCircle() {
+		if(status == -1) 
+			return ErrType.SB_ELSES_TURN;
+		if(status > 0) 
+			return ErrType.CARD_LAID;
+
+		for(int iTable = 0; iTable < 5; iTable++) {
+			game.getTableByNr(iTable).isCircle = false;
+		}
+		int seatsTaken = 0;
+		for(int iSeat = 0; iSeat < 12; iSeat++) {
+			if(game.getSeatByNr(iSeat).isTaken()) seatsTaken++;
+		}
+		if(seatsTaken == 0) 
+			game.specialMode = SpecialMode.FIRSTCARD;
+		else if(seatsTaken == 1)
+			game.specialMode = SpecialMode.SECONDCARD;
+		else
+			game.specialMode = SpecialMode.NONE;
+		return ErrType.NONE;
+	}
 }
