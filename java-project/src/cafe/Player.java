@@ -418,10 +418,18 @@ public class Player {
 		cards.remove(cardNr);
 		status++;
 		points += pSeat.getPoints();
+
+		boolean fullCircle = false;
+		Table table;
+		for(int iTable = 0; iTable < 5; iTable++) {
+			table = game.getTableByNr(iTable);
+			fullCircle |= (table.isCircle && table.isFull());
+		}
+
 		if (game.specialMode == SpecialMode.FIRSTCARD) {
 			laidUnderReserve.push(pSeat);
 			game.specialMode = SpecialMode.SECONDCARD;
-		} else if(game.specialMode == SpecialMode.CIRCLE && status < 4) {
+		} else if(game.specialMode == SpecialMode.CIRCLE && status < 4 && !fullCircle) {
 			laidUnderReserve.push(pSeat);
 		} else {
 			game.specialMode = SpecialMode.NONE;
