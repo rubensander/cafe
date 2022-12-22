@@ -1,1 +1,2 @@
-web: npm start java
+web: npm start
+worker: java cafe.jar
