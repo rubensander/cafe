@@ -4,15 +4,11 @@ public class Table {
     Seat[] seats;
     Nation nation;
     public boolean isCircle;
-    int countTaken;
-    int countBalance; // f +, m -
 
     public Table(Nation pNation) {
         nation = pNation;
         seats = new Seat[4];
         isCircle = false;
-        countTaken = 0;
-        countBalance = 0;
     }
 
     public void registerSeat(Seat pSeat) {
@@ -33,17 +29,15 @@ public class Table {
     }
 
     public boolean isFull() {
-        return countTaken == 4;
+        return countTaken() == 4;
     }
 
     public boolean isEmpty() {
-        return countTaken == 0;
+        return countTaken() == 0;
     }
 
     public void empty() {
         nation = null;
-        countTaken = 0;
-        countBalance = 0;
         for(Seat seat : seats){
             seat.empty();
         }
@@ -62,19 +56,15 @@ public class Table {
     }
 */
     public int getPoints() {
-        int points;
+        int points = countTaken();
         
-        if(countTaken == 1)
+        if(points == 1)
             points = 0;
-        else if(Math.abs(countBalance) == 4)
+        else if(Math.abs(getBalance(Sex.f)) == 4)
         	points = 20;
-        else
-        	points = countTaken;
 
-        if(isFull()) {
-            for(Seat seat : seats) {
-                if(seat.getNation() != nation) return points;
-            }
+        for(Seat seat : seats) {
+            if(seat.getNation() != nation) return points;
         }
         return 2 * points;
     }
@@ -90,19 +80,37 @@ public class Table {
         return true;
     }
 */
-    public void set(Sex pSex) {
-        countTaken++;
-        if(pSex == Sex.f) countBalance++; else countBalance--;
+
+    int countTaken() {
+        int taken = 0;
+        for(Seat seat : seats) {
+            if(seat.taken) taken++;
+        }
+        return taken;
     }
 
     public int getBalance(Sex pSex) {
-        int relativeBalance = countBalance;
-        if(pSex == Sex.m) relativeBalance = -1 * relativeBalance;
-        return relativeBalance;
+        int balance = 0;
+        for(Seat seat : seats) {
+            if(seat.getSex() != null) {
+                if(seat.getSex() == pSex)
+                    balance++;
+                else
+                    balance--;
+            }
+        }
+        return balance;
     }
 
     public boolean suitableForCircle() {
         if(isCircle) return false;
-        return (countTaken == Math.abs(countBalance));
+        Sex sex = null;
+        for(Seat seat : seats) {
+            if(sex == null)
+                sex = seat.getSex();
+            else if(seat.getSex() != null && seat.getSex() != sex)
+                return false;
+        }
+        return true;
     }
 }

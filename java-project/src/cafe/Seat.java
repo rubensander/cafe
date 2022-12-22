@@ -14,7 +14,6 @@ public class Seat {
     public void set(Card pCard) {
         card = pCard;
         taken = true;
-        table.set(pCard.getSex());
     }
 
     public ErrType isValidMove(Card pCard, SpecialMode pMode) {

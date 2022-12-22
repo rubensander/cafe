@@ -17,9 +17,6 @@ public class CenterSeat extends Seat {
     public void set(Card pCard) {
         card = pCard;
         taken = true;
-        table.set(pCard.getSex());
-        table2.set(pCard.getSex());
-        table3.set(pCard.getSex());
     }
 
     @Override
@@ -43,7 +40,7 @@ public class CenterSeat extends Seat {
             }
         } else if(table.isEmpty() && table2.isEmpty() && table3.isEmpty()) {
             return ErrType.ALONE;
-        } else if(table.getBalance(sex) > 0 || table3.getBalance(sex) > 0 || table3.getBalance(sex) > 0) {
+        } else if((!table.isEmpty() && table.getBalance(sex) > 0) || (table2.isEmpty() && table2.getBalance(sex) > 0) || (table2.isEmpty() && table3.getBalance(sex) > 0)) {
             return ErrType.SEX_IMBALANCE;
         }
         return ErrType.NONE;
