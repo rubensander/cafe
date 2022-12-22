@@ -16,7 +16,6 @@ html, body {
 
 .button {
   background-color: #0057A3;
-  border-color: #0057A3;
   color: white;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 5vmin;
@@ -26,7 +25,7 @@ html, body {
 }
 
 .button:hover, .smallButton:hover {
-  cursor: pointer;
+  cursor: default;
   background-color: #00B3F2;
 }
 

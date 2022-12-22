@@ -29,10 +29,6 @@
     <button class="button" id="btnStartGame" onclick="startGame()" >Los geht's!</button>
   </div>
 
-  <div id="playerinfo">
-
-  </div>
-
   <div id="game">
     <table>
       <tr>
@@ -40,10 +36,10 @@
         <td><img class="seat" src="./img/XX_x.svg" alt="Seat 2" id="seat2" draggable="false"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
         <td></td>
         <td><img class="seat" src="./img/XX_x.svg" alt="Seat 4" id="seat4" draggable="false"ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" onclick="setIfSelected(event)"></td>
-        <td>
+        <td class="tdbtn">
           <button class="smallButton" id="btnEndTurn" onclick="endTurn()">&#10004;</button>
           <button class="smallButton" id="btnTakeBackCard" onclick="takeBackCard()">&#8678;</button>
-          <button class="smallButton" id="btnCircle" onclick="selectTableForCircle()">Stammtisch</button>
+          <input class="smallButton" id="btnCircle" onclick="selectTableForCircle()" type="image" src="./img/beermug.png" />
         </td>
       </tr>
       <tr>

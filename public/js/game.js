@@ -4,7 +4,7 @@
 const ws = new WebSocket("ws://" + location.hostname + ":8080");
 var validMoves;
 const hand = document.getElementById("hand");
-var name = "";
+let name = "";
 var selectedCard = -1;
 
 // before the start of the game
@@ -116,7 +116,14 @@ ws.onmessage = function(event) {
       document.getElementById("btnEndTurn").style.display = msgObj.canEndTurn ? "inline-block" : "none";
       document.getElementById("btnTakeBackCard").style.display = msgObj.canTakeBackCard ? "inline-block" : "none";
       document.getElementById("btnCircle").style.display = msgObj.canStartCircle ? "inline-block" : "none";
-      document.getElementById("btnCircle").innerText = msgObj.isCircle ? "Abbrechen" : "Stammtisch";
+      document.getElementById("btnCircle").setAttribute("src", msgObj.isCircle ? "./img/x.svg" : "./img/beermug.png");
+      if(!msgObj.isCircle) {
+        for(table of document.getElementsByClassName("table")) {
+          table.onclick = undefined;
+          table.style = '';
+          table.classList.remove('selectCircle');
+        }
+      }
       break;
     case "CIRCLE":
       for(i in msgObj.suitableTables) {
@@ -260,13 +267,13 @@ function takeBackCard() {
 }
 
 function selectTableForCircle() {
-  if(document.getElementById("btnCircle").innerText == "Stammtisch") {
-    document.getElementById("btnCircle").innerText = "Abbrechen";
+  if(document.getElementById("btnCircle").getAttribute("src") == "./img/beermug.png") {
+    document.getElementById("btnCircle").setAttribute("src", "./img/x.svg");
     document.getElementById("whoseTurn").style.display = "none";
     document.getElementById("circleInfo").style.display = "inline-block";
     ws.send(JSON.stringify({ msgType:"CIRCLE", info: true }));
   } else {
-    document.getElementById("btnCircle").innerText = "Stammtisch";
+    document.getElementById("btnCircle").setAttribute("src", "./img/beermug.png");
     for(table of document.getElementsByClassName("table")) {
       table.onclick = undefined;
       table.style = '';

@@ -2,10 +2,6 @@
   display:none;
 }
 
-#playerinfo {
-  display: none;
-}
-
 #error {
   display: none;
   color: #C00;
@@ -20,11 +16,9 @@ img {
   border-color: #FFFFFF00;
   border-radius: 5px;
   border-width: 5px;
-  height: 13.3vh;
   height: calc(var(--vh, 1vh) * 13.3);
   margin: 0;
-  padding: 0.2vh;
-  padding: calc(var(--vh, 1vh) * 0.2);;
+  padding: calc(var(--vh, 1vh) * 0.2);
 }
 
 #drawpile:hover, .handcard:hover {
@@ -49,16 +43,24 @@ td, tr {
   white-space: nowrap;
 }
 
+.tdbtn {
+  padding: 5px;
+}
+
 .smallButton {
   background-color: #0057A3;
-  border-color: #0057A3;
+  border-style: solid;
+  border-color: #FFFFFF00;
+  border-radius: 5px;
+  border-width: 5px;
   border-radius: 1vh;
+  box-sizing: border-box;
   color: white;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 3vmin;
-  padding: 2vmin 2vmin;
+  padding: 7px 7px;
   text-align: center;
-  width: 8.4vh;
+  width: calc(var(--vh, 1vh) * 8.6 - 10px);
 }
 
 #btnEndTurn {
