@@ -16,9 +16,11 @@ img {
   border-color: #FFFFFF00;
   border-radius: 5px;
   border-width: 5px;
-  height: calc(var(--vh, 1vh) * 13.3);
+  height: 13.3vh;
+  /*height: calc(var(--vh, 1vh) * 13.3);*/
   margin: 0;
-  padding: calc(var(--vh, 1vh) * 0.2);
+  padding: 0.2vh;
+  /*padding: calc(var(--vh, 1vh) * 0.2);*/
 }
 
 #drawpile:hover, .handcard:hover {
@@ -60,7 +62,8 @@ td, tr {
   font-size: 3vmin;
   padding: 7px 7px;
   text-align: center;
-  width: calc(var(--vh, 1vh) * 8.6 - 10px);
+  width: calc(8.6vh - 10px);
+  /*width: calc(var(--vh, 1vh) * 8.6 - 10px);*/
 }
 
 #btnEndTurn {
