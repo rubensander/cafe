@@ -1,6 +1,9 @@
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
+const ip = require('ip');
+
+console.log('Your IP is ' + ip.address());
 
 // Spawn java process
 if(process.argv[2] == "java") {
