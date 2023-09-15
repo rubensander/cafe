@@ -24,3 +24,11 @@ Dann kannst du den Server mit
 > node server.js 
 
 starten. Nun sollte im Browser die Startseite aufrufbar sein, unter der Adresse "localhost".
+
+Java kann kompiliert werden mit
+
+> javac -d java-project\bin -cp java-project\lib\* java-project\src\cafe\*.java
+
+und gestartet werden mit
+
+> java -cp "java-project\bin;java-project\lib\*" cafe.Game
